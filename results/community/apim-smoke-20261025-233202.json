@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-10-26T04:32:28.6633496Z",
+  "label": "apim-inbound-policy-smoke",
+  "checks": [
+    {
+      "observed_status": 401,
+      "pass": true,
+      "request": "GET /loans/loans/L-1001 without token",
+      "expected_status": 401,
+      "id": "APIM01"
+    },
+    {
+      "observed_status": 200,
+      "pass": true,
+      "request": "GET /loans/loans/L-1001 with scoped token + SeniorServicer role",
+      "expected_status": 200,
+      "id": "APIM02"
+    }
+  ],
+  "tool_version": "0.1.0",
+  "environment": {
+    "gateway_product": "Azure API Management",
+    "notes": "Policy-level validation for JWT/scope/role gate on imported loans API."
+  }
+}

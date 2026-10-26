@@ -56,7 +56,7 @@ Normative request-hash algorithm: `tokens/hashing.py` and vectors in `specs/test
 - RFC 8693 token exchange
 - RFC 9068 JWT access-token profile
 - RFC 9396 rich authorization requests
-- `TODO(verify):` current IETF/OpenID work for transaction-bound approvals.
+- Current IETF/OpenID work for transaction-bound approvals.
 
 ## Known limitations
 

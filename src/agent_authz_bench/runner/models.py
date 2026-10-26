@@ -42,3 +42,4 @@ class RunResult(BaseModel):
     timestamp: str
     environment: dict
     scenarios: list[ScenarioResult]
+    summary: dict | None = None

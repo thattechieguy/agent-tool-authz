@@ -2,7 +2,7 @@
 
 **This mapping is the author's interpretation; NIST has not reviewed or endorsed this repository.**
 
-`TODO(verify): re-check exact NCCoE concept-paper wording before publishing.`
+The wording below reflects the author’s best-effort interpretation of the NCCoE concept-paper themes.
 
 | NCCoE theme | Repo artifact | Notes |
 |---|---|---|

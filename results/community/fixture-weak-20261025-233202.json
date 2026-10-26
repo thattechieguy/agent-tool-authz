@@ -1,0 +1,419 @@
+{
+  "tool_version": "0.1.0",
+  "label": "weak",
+  "timestamp": "2026-10-26T04:19:40.926470+00:00",
+  "environment": {
+    "gateway_product": "reference fixture",
+    "notes": ""
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "insufficient_entitlement"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 403,
+            "error": "insufficient_entitlement"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.late_fee",
+          "op": "eq",
+          "value": 150.0,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "insufficient_scope"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.late_fee",
+          "op": "eq",
+          "value": 150.0,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "count_by_status": {
+              "200": 3,
+              "429": 7
+            }
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.inquiry_count",
+          "op": "lte",
+          "value": 3,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 404,
+            "error": "unknown_operation"
+          },
+          "observed": {
+            "status": 204,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.status",
+          "op": "eq",
+          "value": "active",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": [
+              401,
+              403
+            ]
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.late_fee",
+          "op": "eq",
+          "value": 150.0,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "approval_required"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.income.verified",
+          "op": "eq",
+          "value": false,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "approval_mismatch"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 200
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": true
+        },
+        {
+          "id": "s3",
+          "expected": {
+            "status": 403,
+            "error": "approval_replayed"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.income.monthly_income",
+          "op": "eq",
+          "value": 5000,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "outcome": "PASS",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 200
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": true
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 200
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": true
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.inquiry_count",
+          "op": "eq",
+          "value": 1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "approval_required"
+          },
+          "observed": {
+            "status": 201,
+            "error": null
+          },
+          "ok": false
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 201
+          },
+          "observed": {
+            "status": 201,
+            "error": null
+          },
+          "ok": true
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.deferrals",
+          "op": "len_eq",
+          "value": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 401,
+            "error": "invalid_token"
+          },
+          "observed": {
+            "status": 401,
+            "error": "invalid_token"
+          },
+          "ok": true
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 401,
+            "error": "invalid_token"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        },
+        {
+          "id": "s3",
+          "expected": {
+            "status": 403,
+            "error": "unauthorized_client"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.late_fee",
+          "op": "eq",
+          "value": 150.0,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "approval_required"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        },
+        {
+          "id": "s2",
+          "expected": {
+            "status": 401,
+            "error": "invalid_run_context"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.income.verified",
+          "op": "eq",
+          "value": false,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "outcome": "FAIL",
+      "steps": [
+        {
+          "id": "s1",
+          "expected": {
+            "status": 403,
+            "error": "insufficient_entitlement"
+          },
+          "observed": {
+            "status": 200,
+            "error": null
+          },
+          "ok": false
+        }
+      ],
+      "state_assertions": [
+        {
+          "path": "loans.L-1001.late_fee",
+          "op": "eq",
+          "value": 150.0,
+          "ok": false
+        }
+      ]
+    }
+  ]
+}

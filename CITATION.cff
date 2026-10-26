@@ -4,8 +4,9 @@ message: "If you use this project, please cite it using this metadata."
 type: software
 version: 0.1.0
 authors:
-  - family-names: "TODO(owner)"
-    given-names: "TODO(owner)"
-    affiliation: "TODO(owner)"
-repository-code: "TODO(owner)"
+  - family-names: "Shaik"
+    given-names: "Amzad"
+    affiliation: "agent-authz-bench"
+    email: "a.shaik1982@gmail.com"
+repository-code: "https://github.com/thattechieguy/agent-tool-authz"
 license: Apache-2.0

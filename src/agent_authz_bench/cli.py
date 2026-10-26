@@ -65,9 +65,10 @@ def report(
     weak: Path = Path("reports/weak.json"),
     reference: Path = Path("reports/reference.json"),
     out: Path = Path("reports/matrix.md"),
+    scenarios: Path = Path("scenarios"),
 ) -> None:
     """Generate scenario matrix report from weak/reference runs."""
-    print(generate_report(weak, reference, out))  # noqa: T201
+    print(generate_report(weak, reference, out, scenarios_dir=scenarios))  # noqa: T201
 
 
 if __name__ == "__main__":

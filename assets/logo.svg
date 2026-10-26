@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320" role="img" aria-label="agent-authz-bench logo">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="320" rx="24" fill="#0f172a"/>
+  <g transform="translate(48 48)">
+    <rect x="0" y="0" width="224" height="224" rx="20" fill="url(#g1)"/>
+    <path d="M44 116l36-36 28 28 56-56 24 24-80 80-52-52-12 12z" fill="#e2e8f0"/>
+    <circle cx="174" cy="174" r="26" fill="#e2e8f0"/>
+    <path d="M174 154v40M154 174h40" stroke="#0f172a" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(320 110)">
+    <text x="0" y="0" fill="#e2e8f0" font-size="52" font-family="Segoe UI, Arial, sans-serif" font-weight="700">agent-authz-bench</text>
+    <text x="0" y="56" fill="#94a3b8" font-size="26" font-family="Segoe UI, Arial, sans-serif">Policy-first AI agent authorization conformance</text>
+  </g>
+</svg>

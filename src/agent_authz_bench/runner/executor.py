@@ -68,11 +68,13 @@ def execute_suite(
     provider = token_provider or EnvTokenProvider()
     scenario_schema = json.loads(Path("schema/scenario.schema.json").read_text(encoding="utf-8"))
     scenario_files = sorted(scenarios_dir.glob("S*.yaml"))
+    scenario_categories: dict[str, str] = {}
     scenario_results: list[ScenarioResult] = []
 
     with httpx.Client(timeout=10.0) as client:
         for file_path in scenario_files:
             scenario = _load_yaml(file_path)
+            scenario_categories[scenario["id"]] = str(scenario.get("category", "unknown"))
             if only and scenario["id"] not in only:
                 continue
             jsonschema.validate(scenario, scenario_schema)
@@ -188,12 +190,27 @@ def execute_suite(
                 )
             )
 
+    pass_count = sum(1 for item in scenario_results if item.outcome == "PASS")
+    total_count = len(scenario_results)
+    critical_ids = [sid for sid, cat in scenario_categories.items() if cat != "positive-control"]
+    critical_failures = sorted(
+        [item.id for item in scenario_results if item.id in critical_ids and item.outcome != "PASS"]
+    )
+    critical_total = max(1, len(critical_ids))
+
     run = RunResult(
         tool_version="0.1.0",
         label=label,
         timestamp=datetime.now(tz=UTC).isoformat(),
         environment={"gateway_product": "reference fixture", "notes": ""},
         scenarios=scenario_results,
+        summary={
+            "pass_count": pass_count,
+            "total_count": total_count,
+            "pass_rate": (pass_count / total_count) if total_count else 0.0,
+            "critical_failures": critical_failures,
+            "critical_pass_rate": (len(critical_ids) - len(critical_failures)) / critical_total,
+        },
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(run.model_dump_json(indent=2), encoding="utf-8")

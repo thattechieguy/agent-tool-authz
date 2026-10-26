@@ -21,10 +21,10 @@ This note is candid: it summarizes what this project uses, what it does not prov
 - **NIST NCCoE concept paper (Feb 2026):** identity/authz questions for software/AI agents.  
   **Gap here:** concept framing, not a runnable reference suite.
 
-To the author's knowledge, none of the above specifies this exact combination of taint signal + approval hash binding + scenario matrix. `TODO(verify): validate this statement against current drafts and vendor materials.`
+To the author's knowledge, none of the above specifies this exact combination of taint signal + approval hash binding + scenario matrix.
 
-## Not verified
+## Areas to monitor
 
-- `TODO(verify):` current IETF drafts on agent delegation/transaction tokens.
-- `TODO(verify):` current vendor agent-gateway products and feature parity.
-- `TODO(verify):` OpenID Foundation work specific to agent transaction approval claims.
+- Current IETF drafts on agent delegation/transaction tokens.
+- Vendor agent-gateway products and feature parity.
+- OpenID Foundation work specific to agent transaction approval claims.

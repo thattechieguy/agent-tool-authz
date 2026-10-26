@@ -9,7 +9,7 @@ description = "Authorization abuse scenario suite and reference gateway for AI a
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
-authors = [{ name = "TODO(owner)" }]
+authors = [{ name = "Amzad Shaik", email = "a.shaik1982@gmail.com" }]
 dependencies = [
   "fastapi",
   "uvicorn",

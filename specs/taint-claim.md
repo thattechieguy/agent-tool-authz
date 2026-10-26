@@ -52,7 +52,7 @@ Token validity does not imply request intent when model context contains untrust
 - RFC 8693 token exchange
 - RFC 9068 JWT access-token profile
 - RFC 9396 rich authorization requests
-- `TODO(verify):` current IETF drafts on agent delegation/transaction tokens.
+- Current IETF drafts on agent delegation/transaction tokens.
 
 ## Open questions
 

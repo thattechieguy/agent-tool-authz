@@ -7,6 +7,7 @@ aab run --target http://your-gateway --backend http://your-backend --admin-key <
 ```
 
 2. Validate and inspect outputs.
+   - Check `summary.pass_rate`, `summary.critical_pass_rate`, and `summary.critical_failures`.
 3. Submit via:
    - GitHub issue using `.github/ISSUE_TEMPLATE/gateway_results.md`, or
    - PR adding a file under `results/community/`.

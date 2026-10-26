@@ -2,7 +2,7 @@
 
 ## Reporting
 
-Please report vulnerabilities to: `TODO(owner)`.
+Please report vulnerabilities to: `a.shaik1982@gmail.com`.
 
 ## Scope
 

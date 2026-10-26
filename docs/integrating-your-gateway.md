@@ -35,6 +35,7 @@ When caller-context enforcement is enabled, tokens should include:
 - `azp`, `sub`, `scp`, `roles`
 
 Reference profile mappings live in `catalogs/caller-profiles.yaml`.
+Schema: `schema/caller-profiles.schema.json`.
 
 ## Token provider replacement
 
@@ -65,3 +66,10 @@ For secure-path scenarios, run backend in `BACKEND_AUTH_MODE=service_token` behi
 - scope/role checks per operation
 - per-run-id rate limiting
 - request-hash based approval for sensitive writes
+
+## APIM accelerator assets
+
+- IaC template: `examples/apim/main.bicep`
+- Setup helper: `examples/apim/setup.ps1`
+- Starter policy: `examples/apim/inbound-policy.xml`
+- Imported API sample: `examples/apim/loans-backend-openapi.json`
