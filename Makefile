@@ -4,15 +4,18 @@ PIP := $(VENV)/Scripts/pip
 PY := $(VENV)/Scripts/python
 AAB := $(VENV)/Scripts/aab
 
-.PHONY: setup keys lint test check up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
+.PHONY: setup env-init keys lint test check up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
 
 setup:
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install -e ".[dev]"
-	$(MAKE) keys
+	$(MAKE) env-init
+
+env-init:
+	$(AAB) env init --out .env
 
 keys:
-	$(AAB) keys generate --out .keys
+	@echo "keys generation removed; use your own identity and token setup via .env"
 
 lint:
 	$(PY) -m ruff check .

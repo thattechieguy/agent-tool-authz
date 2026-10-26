@@ -26,6 +26,16 @@ Expected status classes:
 
 For approval-required denies, include `approval_request_hash`.
 
+## Caller context contract
+
+When caller-context enforcement is enabled, tokens should include:
+
+- `caller_type`
+- `node_id`
+- `azp`, `sub`, `scp`, `roles`
+
+Reference profile mappings live in `catalogs/caller-profiles.yaml`.
+
 ## Token provider replacement
 
 Implement `TokenProvider` in `runner/providers.py`:
@@ -37,8 +47,12 @@ Implement `TokenProvider` in `runner/providers.py`:
 ## Running against another gateway
 
 ```bash
-aab run --target http://your-gateway --backend http://your-backend --admin-key <key> --scenarios scenarios --label your-gateway --out reports/your-gateway.json
+aab env init
+# edit .env values
+aab run --admin-key <key> --scenarios scenarios --label your-gateway --out reports/your-gateway.json
 ```
+
+For auth, set either `AAB_ACCESS_TOKEN` directly or configure `AAB_TOKEN_RESOURCE` / `AAB_TOKEN_SCOPE` so the runner mints a token via `az account get-access-token`.
 
 ## Backend mode
 

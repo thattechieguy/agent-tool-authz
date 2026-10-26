@@ -19,6 +19,8 @@ class GatewayConfig:
     allowed_clients: tuple[str, ...] = ("loans-agent",)
     backend_service_secret: str = ""
     audit_log_path: str = "logs/gateway-audit.jsonl"
+    caller_profiles_path: str = "catalogs/caller-profiles.yaml"
+    enforce_caller_context: bool = True
 
 
 def load_config() -> GatewayConfig:
@@ -42,4 +44,6 @@ def load_config() -> GatewayConfig:
         ),
         backend_service_secret=os.getenv("BACKEND_SERVICE_SECRET", default_secret),
         audit_log_path=os.getenv("AUDIT_LOG_PATH", "logs/gateway-audit.jsonl"),
+        caller_profiles_path=os.getenv("CALLER_PROFILES_PATH", "catalogs/caller-profiles.yaml"),
+        enforce_caller_context=os.getenv("ENFORCE_CALLER_CONTEXT", "true").lower() == "true",
     )

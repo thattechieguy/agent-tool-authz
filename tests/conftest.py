@@ -12,6 +12,45 @@ import httpx
 import pytest
 
 from agent_authz_bench.tokens.keys import generate_test_keys
+from agent_authz_bench.tokens.testidp import issue_access_token, issue_approval, issue_run_context
+
+
+class LocalTestTokenProvider:
+    """Test-only token provider that mints local fixture tokens."""
+
+    def access_token(self, identity: dict) -> str:  # noqa: ANN401
+        extra_claims: dict[str, str] = {
+            "caller_type": identity.get("caller_type", "ai-orchestrator"),
+            "node_id": identity.get("_node_id", "unknown"),
+        }
+        return issue_access_token(
+            identity["user"],
+            identity["scopes"],
+            client=identity.get("client", "loans-agent"),
+            audience=identity.get("audience", "api://loans-gateway"),
+            expired=bool(identity.get("expired", False)),
+            signing_key=identity.get("signing_key", "idp"),
+            extra_claims=extra_claims,
+        )
+
+    def run_context(self, run_id: str, ctx: dict | str | None) -> str | None:  # noqa: ANN401
+        if ctx == "omit":
+            return None
+        if ctx == "forged":
+            return issue_run_context(run_id, tainted=True, signing_key="attacker")
+        if ctx is None:
+            return issue_run_context(run_id, tainted=False)
+        return issue_run_context(
+            run_id, tainted=bool(ctx.get("tainted", False)), sources=ctx.get("sources", [])
+        )
+
+    def approval(self, run_id: str, req_hash: str) -> tuple[str, str]:
+        return issue_approval(run_id, req_hash)
+
+
+@pytest.fixture
+def local_token_provider() -> LocalTestTokenProvider:
+    return LocalTestTokenProvider()
 
 
 def _free_port() -> int:

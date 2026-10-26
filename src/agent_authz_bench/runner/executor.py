@@ -16,7 +16,7 @@ from agent_authz_bench.runner.models import (
     StateAssertionResult,
     StepResult,
 )
-from agent_authz_bench.runner.providers import DefaultTokenProvider, TokenProvider
+from agent_authz_bench.runner.providers import EnvTokenProvider, TokenProvider
 from agent_authz_bench.tokens.hashing import request_hash
 
 
@@ -65,7 +65,7 @@ def execute_suite(
     token_provider: TokenProvider | None = None,
 ) -> dict[str, Any]:
     """Execute scenario files and write run output."""
-    provider = token_provider or DefaultTokenProvider()
+    provider = token_provider or EnvTokenProvider()
     scenario_schema = json.loads(Path("schema/scenario.schema.json").read_text(encoding="utf-8"))
     scenario_files = sorted(scenarios_dir.glob("S*.yaml"))
     scenario_results: list[ScenarioResult] = []
@@ -85,12 +85,15 @@ def execute_suite(
 
             for step in scenario["steps"]:
                 identity = step["identity"]
+                node_id = step.get("node", "unknown")
+                identity_with_context = dict(identity)
+                identity_with_context["_node_id"] = node_id
                 request_spec = step["request"]
                 headers: dict[str, str] = {}
-                token = provider.access_token(identity)
+                token = provider.access_token(identity_with_context)
                 headers["Authorization"] = f"Bearer {token}"
                 headers["X-Agent-Run-Id"] = run_id
-                headers["X-Agent-Node-Id"] = step.get("node", "unknown")
+                headers["X-Agent-Node-Id"] = node_id
                 headers.update(request_spec.get("headers", {}))
 
                 run_ctx = provider.run_context(run_id, step.get("context"))

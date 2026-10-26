@@ -29,9 +29,19 @@ def _headers(
     scopes: list[str] | None = None,
     run_id: str = "run-abc",
     include_run_ctx: bool = True,
+    caller_type: str = "ai-orchestrator",
+    node_id: str = "unknown",
 ) -> dict[str, str]:
-    token = issue_access_token(user, scopes or ["Loans.Income"])
-    headers = {"authorization": f"Bearer {token}", "x-agent-run-id": run_id}
+    token = issue_access_token(
+        user,
+        scopes or ["Loans.Income"],
+        extra_claims={"caller_type": caller_type, "node_id": node_id},
+    )
+    headers = {
+        "authorization": f"Bearer {token}",
+        "x-agent-run-id": run_id,
+        "x-agent-node-id": node_id,
+    }
     if include_run_ctx:
         headers["x-run-context"] = issue_run_context(run_id, tainted=False)
     return headers
@@ -52,7 +62,12 @@ def test_pipeline_step_ordering_missing_run_id_before_unknown_operation() -> Non
 
 def test_unauthorized_client() -> None:
     pipeline = GatewayPipeline(_config())
-    token = issue_access_token("alice", ["Loans.Read"], client="other-app")
+    token = issue_access_token(
+        "alice",
+        ["Loans.Read"],
+        client="other-app",
+        extra_claims={"caller_type": "ai-orchestrator", "node_id": "unknown"},
+    )
     with pytest.raises(DecisionError) as exc:
         pipeline.authorize(
             method="GET",
@@ -181,8 +196,59 @@ def test_rejected_request_not_forwarded(monkeypatch: pytest.MonkeyPatch) -> None
     response = client.post(
         "/loans/L-1001/income-verification",
         json={"verified": True, "monthly_income": 9000},
-        headers={"Authorization": f"Bearer {issue_access_token('alice', ['Loans.Income'])}"},
+        headers={
+            "Authorization": (
+                "Bearer "
+                + issue_access_token(
+                    "alice",
+                    ["Loans.Income"],
+                    extra_claims={"caller_type": "ai-orchestrator", "node_id": "unknown"},
+                )
+            )
+        },
     )
     assert response.status_code == 400
     assert response.json()["error"] == "missing_run_id"
     assert calls == []
+
+
+def test_missing_caller_type_claim_rejected() -> None:
+    pipeline = GatewayPipeline(_config())
+    token = issue_access_token(
+        "alice", ["Loans.Read"], extra_claims={"caller_type": "", "node_id": "unknown"}
+    )
+    with pytest.raises(DecisionError) as exc:
+        pipeline.authorize(
+            method="GET",
+            path="/loans/L-1001",
+            query={},
+            body=b"",
+            headers={
+                "authorization": f"Bearer {token}",
+                "x-agent-run-id": "run-abc",
+                "x-agent-node-id": "unknown",
+                "x-run-context": issue_run_context("run-abc", tainted=False),
+            },
+        )
+    assert exc.value.error == "invalid_caller_context"
+
+
+def test_langgraph_node_policy_rejected_for_wrong_tool() -> None:
+    pipeline = GatewayPipeline(_config())
+    with pytest.raises(DecisionError) as exc:
+        pipeline.authorize(
+            method="POST",
+            path="/loans/L-1001/income-verification",
+            query={},
+            body=b'{"verified": true, "monthly_income": 5000}',
+            headers={
+                **_headers(
+                    user="alice",
+                    scopes=["Loans.Income"],
+                    caller_type="langgraph-node",
+                    node_id="read-node",
+                ),
+                "x-run-context": issue_run_context("run-abc", tainted=False),
+            },
+        )
+    assert exc.value.error == "insufficient_caller_policy"

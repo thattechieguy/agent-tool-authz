@@ -20,13 +20,37 @@ This repository focuses on deterministic, executable controls for those authoriz
 - Mock backend and weak/reference gateway modes
 - Authorization-abuse scenario runner and report generator
 - Draft taint-claim and approval-binding specs
+- Caller-identity contract and caller profile policy pack
 
 ## 15-minute quickstart
 
 ```bash
 make setup
+aab env init
+# edit .env with your app registration/APIM/resource-group/token values
 make demo
 ```
+
+## User configuration (.env)
+
+Populate `.env` (from `.env.example`) with:
+
+- `AAB_APP_REGISTRATION_CLIENT_ID`
+- `AAB_CALLER_APP_REGISTRATION_CLIENT_ID`
+- `AAB_TENANT_ID`
+- `AAB_APIM_NAME`
+- `AAB_RESOURCE_GROUP_NAME`
+- `AAB_SUBSCRIPTION_ID`
+- one of:
+  - `AAB_ACCESS_TOKEN`, or
+  - `AAB_TOKEN_RESOURCE` / `AAB_TOKEN_SCOPE` for Azure CLI token minting
+
+Optional tokens:
+
+- `AAB_RUN_CONTEXT_TOKEN`
+- `AAB_APPROVAL_TOKEN`
+
+The tool does not mint local mock tokens in normal use; it consumes user-provided values.
 
 ## Results matrix
 
@@ -65,6 +89,7 @@ aab run --target http://127.0.0.1:8080 --backend http://127.0.0.1:9000 --admin-k
 - **Tier 3**: financial/decision-impacting actions requiring approval
 - **Taint claim**: untrusted content entered run context
 - **Approval binding**: approval token bound to exact canonical request hash
+- **Caller identity contract**: caller type/node-aware policy intersection at gateway
 
 ## Limitations
 

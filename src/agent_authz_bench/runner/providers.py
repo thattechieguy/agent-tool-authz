@@ -1,8 +1,10 @@
 """Token providers for scenario runner."""
 
+import json
+import subprocess
 from typing import Any, Protocol
 
-from agent_authz_bench.tokens.testidp import issue_access_token, issue_approval, issue_run_context
+from agent_authz_bench.config.env import UserInputConfig, load_user_input_config
 
 
 class TokenProvider(Protocol):
@@ -18,32 +20,42 @@ class TokenProvider(Protocol):
         """Issue approval token."""
 
 
-class DefaultTokenProvider:
-    """Default provider backed by local test IdP helpers."""
+class EnvTokenProvider:
+    """Provider backed by user-supplied values in .env."""
 
-    def access_token(self, identity: dict[str, Any]) -> str:
-        return issue_access_token(
-            identity["user"],
-            identity["scopes"],
-            client=identity.get("client", "loans-agent"),
-            audience=identity.get("audience", "api://loans-gateway"),
-            expired=bool(identity.get("expired", False)),
-            signing_key=identity.get("signing_key", "idp"),
-        )
+    def __init__(self, config: UserInputConfig | None = None) -> None:
+        self._config = config or load_user_input_config()
 
-    def run_context(self, run_id: str, ctx: dict[str, Any] | str | None) -> str | None:
+    def access_token(self, identity: dict[str, Any]) -> str:  # noqa: ARG002
+        if self._config.static_access_token:
+            return self._config.static_access_token
+        command = ["az", "account", "get-access-token", "--output", "json"]
+        if self._config.token_scope:
+            command.extend(["--scope", self._config.token_scope])
+        elif self._config.token_resource:
+            command.extend(["--resource", self._config.token_resource])
+        completed = subprocess.run(command, check=True, capture_output=True, text=True)  # noqa: S603
+        payload = json.loads(completed.stdout)
+        token = payload.get("accessToken")
+        if not token:
+            raise RuntimeError("Azure CLI did not return an access token.")
+        return str(token)
+
+    def run_context(self, run_id: str, ctx: dict[str, Any] | str | None) -> str | None:  # noqa: ARG002
         if ctx == "omit":
             return None
-        if ctx == "forged":
-            return issue_run_context(run_id, tainted=True, signing_key="attacker")
-        if ctx is None:
-            return issue_run_context(run_id, tainted=False)
-        return issue_run_context(
-            run_id, tainted=bool(ctx.get("tainted", False)), sources=ctx.get("sources", [])
+        if self._config.static_run_context_token:
+            return self._config.static_run_context_token
+        raise NotImplementedError(
+            "Set AAB_RUN_CONTEXT_TOKEN in .env for gateways that require run-context tokens."
         )
 
-    def approval(self, run_id: str, req_hash: str) -> tuple[str, str]:
-        return issue_approval(run_id, req_hash)
+    def approval(self, run_id: str, req_hash: str) -> tuple[str, str]:  # noqa: ARG002
+        if self._config.static_approval_token:
+            return self._config.static_approval_token, "user-provided"
+        raise NotImplementedError(
+            "Set AAB_APPROVAL_TOKEN in .env for scenarios that require approval tokens."
+        )
 
 
 class EntraOboTokenProvider:

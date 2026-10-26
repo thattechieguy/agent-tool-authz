@@ -1,0 +1,54 @@
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="invalid_token" require-scheme="Bearer" output-token-variable-name="jwtToken">
+      <openid-config url="https://login.microsoftonline.com/e66c0f67-d37a-4a84-a2fb-082c723c4972/.well-known/openid-configuration" />
+      <audiences>
+        <audience>api://1a28048e-c9df-47e8-a58b-4218d93c16c9</audience>
+      </audiences>
+      <required-claims>
+        <claim name="scp" match="any">
+          <value>access_as_user</value>
+        </claim>
+      </required-claims>
+    </validate-jwt>
+    <choose>
+      <when condition='@(context.Request.Method == "GET")'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles") &amp;&amp; ((((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("ReadOnly")) || (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("Servicer")) || (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer")))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"role check failed"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <otherwise>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles") &amp;&amp; (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"SeniorServicer required for writes"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </otherwise>
+    </choose>
+    <return-response>
+      <set-status code="200" reason="OK" />
+      <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+      <set-body>{"decision":"allow","source":"apim-inbound-policy"}</set-body>
+    </return-response>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import jwt
+import yaml
 
 from agent_authz_bench.catalog.loader import load_catalog
 from agent_authz_bench.catalog.matcher import match_tool
@@ -35,6 +36,7 @@ class PipelineResult:
     tool: CatalogTool | None
     user: str
     client: str
+    caller_type: str
     run_id: str
     normalized_path: str
     node_id: str
@@ -52,8 +54,63 @@ class GatewayPipeline:
             Path(config.catalog_path),
             Path("schema/catalog.schema.json"),
         )
+        self._caller_profiles = self._load_caller_profiles(Path(config.caller_profiles_path))
         self._limiter = SlidingWindowLimiter()
         self._consumed_jti: set[str] = set()
+
+    def _load_caller_profiles(self, path: Path) -> dict[str, dict[str, Any]]:
+        if not path.exists():
+            return {}
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("caller profiles must be a mapping")
+        profiles = raw.get("profiles", {})
+        if not isinstance(profiles, dict):
+            raise ValueError("caller profiles 'profiles' must be a mapping")
+        return {str(key): value for key, value in profiles.items() if isinstance(value, dict)}
+
+    def _enforce_caller_context(
+        self,
+        claims: dict[str, Any],
+        header_node_id: str,
+        tool_id: str,
+    ) -> tuple[str, str]:
+        caller_type = str(claims.get("caller_type", "")).strip()
+        if not caller_type:
+            raise DecisionError(
+                403, "invalid_caller_context", "missing caller_type claim", tool=tool_id
+            )
+        node_claim = str(claims.get("node_id", "unknown"))
+        if node_claim not in {"", "unknown"} and header_node_id != node_claim:
+            raise DecisionError(
+                403, "invalid_caller_context", "node_id claim/header mismatch", tool=tool_id
+            )
+        profile = self._caller_profiles.get(caller_type)
+        if profile is None:
+            raise DecisionError(403, "unauthorized_caller", "caller type not allowed", tool=tool_id)
+        allowed_tools = profile.get("allowed_tools", [])
+        if (
+            isinstance(allowed_tools, list)
+            and "*" not in allowed_tools
+            and tool_id not in allowed_tools
+        ):
+            raise DecisionError(
+                403,
+                "insufficient_caller_policy",
+                "caller profile does not allow this tool",
+                tool=tool_id,
+            )
+        node_policies = profile.get("nodes", {})
+        if isinstance(node_policies, dict) and node_policies:
+            allowed_by_node = node_policies.get(header_node_id)
+            if not isinstance(allowed_by_node, list) or tool_id not in allowed_by_node:
+                raise DecisionError(
+                    403,
+                    "insufficient_caller_policy",
+                    "caller node policy does not allow this tool",
+                    tool=tool_id,
+                )
+        return caller_type, node_claim
 
     def _decode_access_token(self, token: str, *, weak: bool) -> dict[str, Any]:
         key = (Path(self._config.keys_dir) / "idp.public.pem").read_bytes()
@@ -117,6 +174,7 @@ class GatewayPipeline:
                 tool=None,
                 user=user,
                 client=client,
+                caller_type="agent",
                 run_id=run_id or "unknown",
                 normalized_path=path,
                 node_id=node_id,
@@ -136,6 +194,9 @@ class GatewayPipeline:
             raise DecisionError(400, "missing_run_id", "run id is required and must match policy")
 
         tool, normalized_path = self._find_tool(method, path)
+        caller_type = str(access_claims.get("caller_type", "unknown"))
+        if self._config.enforce_caller_context:
+            caller_type, _ = self._enforce_caller_context(access_claims, node_id, tool.id)
         scopes = str(access_claims.get("scp", "")).split()
         if tool.required_scope not in scopes:
             raise DecisionError(403, "insufficient_scope", "required scope missing", tool=tool.id)
@@ -233,6 +294,7 @@ class GatewayPipeline:
             tool=tool,
             user=user,
             client=client,
+            caller_type=caller_type,
             run_id=run_id,
             normalized_path=normalized_path,
             node_id=node_id,
@@ -240,7 +302,7 @@ class GatewayPipeline:
             approval_jti=approval_jti,
             forward_headers={
                 "Authorization": f"Bearer {service_token}",
-                "X-Caller-Type": "agent",
+                "X-Caller-Type": caller_type,
                 "X-Agent-Run-Id": run_id,
             },
         )

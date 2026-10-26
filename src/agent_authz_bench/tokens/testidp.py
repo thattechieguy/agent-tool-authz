@@ -51,6 +51,8 @@ def issue_access_token(
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
         "jti": str(uuid.uuid4()),
+        "caller_type": "ai-orchestrator",
+        "node_id": "unknown",
     }
     if extra_claims:
         payload.update(extra_claims)

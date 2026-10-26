@@ -4,7 +4,7 @@ from pathlib import Path
 from agent_authz_bench.runner.executor import execute_suite
 
 
-def test_weak_scenarios_match_golden(stack_factory) -> None:  # noqa: ANN001
+def test_weak_scenarios_match_golden(stack_factory, local_token_provider) -> None:  # noqa: ANN001
     target, backend = stack_factory("weak")
     out = Path("reports/weak.test.json")
     execute_suite(
@@ -14,6 +14,7 @@ def test_weak_scenarios_match_golden(stack_factory) -> None:  # noqa: ANN001
         scenarios_dir=Path("scenarios"),
         label="weak",
         out=out,
+        token_provider=local_token_provider,
     )
     observed = {
         item["id"]: item["outcome"]

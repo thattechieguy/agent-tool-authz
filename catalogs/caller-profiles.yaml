@@ -1,0 +1,52 @@
+version: "0.1"
+profiles:
+  human-ui:
+    description: Human-driven UI session with least-privileged reads.
+    allowed_tools:
+      - get_loan_details
+      - get_payment_history
+      - get_credit_report
+
+  mcp-tool:
+    description: MCP-integrated tool caller with catalog-bounded reads.
+    allowed_tools:
+      - get_loan_details
+      - get_payment_history
+
+  ai-orchestrator:
+    description: Central orchestrator that can dispatch all benchmark tools.
+    allowed_tools:
+      - "*"
+
+  langgraph-node:
+    description: LangGraph node caller, constrained by per-node tool allowlists.
+    allowed_tools:
+      - get_loan_details
+      - get_payment_history
+      - get_credit_report
+      - update_income_verification
+      - create_payment_deferral
+      - waive_late_fee
+    nodes:
+      read-node:
+        - get_loan_details
+        - get_payment_history
+      credit-node:
+        - get_credit_report
+      income-node:
+        - update_income_verification
+      deferral-node:
+        - create_payment_deferral
+      waiver-node:
+        - waive_late_fee
+
+  batch-worker:
+    description: Batch reconciliation worker.
+    allowed_tools:
+      - get_loan_details
+      - get_payment_history
+
+  webhook-agent:
+    description: Event-driven callback worker.
+    allowed_tools:
+      - get_loan_details

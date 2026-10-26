@@ -1,20 +1,21 @@
 """CLI entrypoint."""
 
+import shutil
 from pathlib import Path
 
 import typer
 
 from agent_authz_bench.catalog.lint import lint_catalog_cli
+from agent_authz_bench.config.env import load_user_input_config
 from agent_authz_bench.runner.executor import execute_suite
-from agent_authz_bench.runner.providers import DefaultTokenProvider
+from agent_authz_bench.runner.providers import EnvTokenProvider
 from agent_authz_bench.runner.report import generate_report
-from agent_authz_bench.tokens.keys import generate_test_keys
 
 app = typer.Typer(help="agent-authz-bench CLI")
 catalog_app = typer.Typer(help="Catalog commands")
-keys_app = typer.Typer(help="Key commands")
+env_app = typer.Typer(help="Environment commands")
 app.add_typer(catalog_app, name="catalog")
-app.add_typer(keys_app, name="keys")
+app.add_typer(env_app, name="env")
 
 
 @catalog_app.command("lint")
@@ -24,16 +25,20 @@ def catalog_lint(file: Path) -> None:
     raise typer.Exit(code=lint_catalog_cli(file, schema_path))
 
 
-@keys_app.command("generate")
-def keys_generate(out: Path = Path(".keys")) -> None:
-    """Generate test key material."""
-    generate_test_keys(out)
+@env_app.command("init")
+def env_init(out: Path = Path(".env")) -> None:
+    """Create a .env file from .env.example if one does not exist."""
+    if out.exists():
+        print(f"{out} already exists.")  # noqa: T201
+        return
+    shutil.copyfile(".env.example", out)
+    print(f"Created {out} from .env.example")  # noqa: T201
 
 
 @app.command("run")
 def run_scenarios(
-    target: str = "http://127.0.0.1:8080",
-    backend: str = "http://127.0.0.1:9000",
+    target: str | None = None,
+    backend: str | None = None,
     admin_key: str = "test-admin-key",
     scenarios: Path = Path("scenarios"),
     label: str = "reference",
@@ -41,16 +46,17 @@ def run_scenarios(
     only: str = "",
 ) -> None:
     """Run authorization scenarios against a target gateway."""
+    config = load_user_input_config()
     selected = {item.strip() for item in only.split(",") if item.strip()} or None
     execute_suite(
-        target=target,
-        backend=backend,
+        target=target or config.target_gateway_url,
+        backend=backend or config.backend_url,
         admin_key=admin_key,
         scenarios_dir=scenarios,
         label=label,
         out=out,
         only=selected,
-        token_provider=DefaultTokenProvider(),
+        token_provider=EnvTokenProvider(config),
     )
 
 
