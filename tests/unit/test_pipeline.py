@@ -13,9 +13,10 @@ from agent_authz_bench.tokens.keys import generate_test_keys
 from agent_authz_bench.tokens.testidp import issue_access_token, issue_approval, issue_run_context
 
 
-def _config(mode: str = "reference") -> GatewayConfig:
+def _config(mode: str = "reference", **overrides: object) -> GatewayConfig:
     secret = (Path(".keys") / "backend_service_secret.txt").read_text(encoding="utf-8").strip()
-    return GatewayConfig(mode=mode, backend_service_secret=secret)
+    config = GatewayConfig(mode=mode, backend_service_secret=secret)
+    return GatewayConfig(**{**config.__dict__, **overrides})
 
 
 @pytest.fixture(autouse=True)
@@ -252,3 +253,77 @@ def test_langgraph_node_policy_rejected_for_wrong_tool() -> None:
             },
         )
     assert exc.value.error == "insufficient_caller_policy"
+
+
+def test_reference_mode_issues_downscoped_backend_token() -> None:
+    pipeline = GatewayPipeline(_config())
+    result = pipeline.authorize(
+        method="POST",
+        path="/loans/L-1001/late-fee-waivers",
+        query={},
+        body=b'{"amount": 10}',
+        headers={
+            **_headers(user="alice", scopes=["Loans.Waiver"]),
+            "x-run-context": issue_run_context("run-abc", tainted=False),
+            "x-approval-token": issue_approval(
+                "run-abc",
+                request_hash(
+                    "POST",
+                    "/loans/L-1001/late-fee-waivers",
+                    {},
+                    '{"amount": 10}',
+                    "run-abc",
+                ),
+            )[0],
+        },
+    )
+    token = result.forward_headers["Authorization"].split(" ", 1)[1]
+    claims = jwt.decode(
+        token,
+        key=(Path(".keys") / "backend_service_secret.txt").read_text(encoding="utf-8").strip(),
+        algorithms=["HS256"],
+        audience="loans-backend",
+        options={"verify_iss": False},
+    )
+    assert claims["scp"] == "Loans.Waiver"
+    assert claims["roles"] == ["SeniorServicer"]
+    assert claims["tool_id"] == "waive_late_fee"
+    assert claims["caller_type"] == "ai-orchestrator"
+
+
+def test_reference_mode_fails_closed_when_broker_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_authz_bench.gateway import downscope
+
+    def _raise_http_error(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise downscope.httpx.ConnectError("boom")
+
+    monkeypatch.setattr(downscope.httpx, "post", _raise_http_error)
+    pipeline = GatewayPipeline(
+        _config(
+            downscope_mode="broker",
+            token_broker_url="http://broker.local",
+            downscope_fail_closed=True,
+        )
+    )
+    req_hash = request_hash(
+        "POST",
+        "/loans/L-1001/income-verification",
+        {},
+        '{"verified": true, "monthly_income": 9000}',
+        "run-abc",
+    )
+    with pytest.raises(DecisionError) as exc:
+        pipeline.authorize(
+            method="POST",
+            path="/loans/L-1001/income-verification",
+            query={},
+            body=b'{"verified": true, "monthly_income": 9000}',
+            headers={
+                **_headers(user="alice", scopes=["Loans.Income"]),
+                "x-run-context": issue_run_context("run-abc", tainted=True),
+                "x-approval-token": issue_approval("run-abc", req_hash)[0],
+            },
+        )
+    assert exc.value.error == "downscope_unavailable"

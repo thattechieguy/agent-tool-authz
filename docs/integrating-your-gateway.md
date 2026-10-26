@@ -65,6 +65,17 @@ Supported token flows:
 
 For secure-path scenarios, run backend in `BACKEND_AUTH_MODE=service_token` behind your gateway.
 
+## Downscoped backend token mode
+
+Reference gateway can issue least-privileged backend tokens for each operation:
+
+- `DOWNSCOPE_ENABLED=true`
+- `DOWNSCOPE_MODE=local` for fixture mode, or `broker` for external broker mode
+- `DOWNSCOPE_FAIL_CLOSED=true` to deny when token downscoping fails
+- `TOKEN_BROKER_URL` required in broker mode
+
+See `docs/downscoping.md` for the full broker request/response contract.
+
 ## Generic product mapping (non-product-specific)
 
 - JWT validation policy

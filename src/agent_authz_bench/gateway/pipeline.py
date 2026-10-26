@@ -12,6 +12,11 @@ from agent_authz_bench.catalog.loader import load_catalog
 from agent_authz_bench.catalog.matcher import match_tool
 from agent_authz_bench.catalog.models import CatalogTool, ToolCatalog
 from agent_authz_bench.gateway.config import GatewayConfig
+from agent_authz_bench.gateway.downscope import (
+    DownscopeError,
+    DownscopeRequest,
+    build_downscope_broker,
+)
 from agent_authz_bench.gateway.ratelimit import SlidingWindowLimiter
 from agent_authz_bench.tokens.hashing import request_hash
 
@@ -57,6 +62,7 @@ class GatewayPipeline:
         self._caller_profiles = self._load_caller_profiles(Path(config.caller_profiles_path))
         self._limiter = SlidingWindowLimiter()
         self._consumed_jti: set[str] = set()
+        self._downscope_broker = build_downscope_broker(config)
 
     def _load_caller_profiles(self, path: Path) -> dict[str, dict[str, Any]]:
         if not path.exists():
@@ -126,7 +132,7 @@ class GatewayPipeline:
 
     def _mint_service_token(self) -> str:
         return jwt.encode(
-            {"iss": "gateway", "aud": "loans-backend", "sub": "svc-gateway"},
+            {"iss": "gateway", "aud": self._config.backend_audience, "sub": "svc-gateway"},
             key=self._config.backend_service_secret,
             algorithm="HS256",
         )
@@ -201,7 +207,8 @@ class GatewayPipeline:
         if tool.required_scope not in scopes:
             raise DecisionError(403, "insufficient_scope", "required scope missing", tool=tool.id)
 
-        roles = set(access_claims.get("roles", []))
+        caller_roles = list(access_claims.get("roles", []))
+        roles = set(caller_roles)
         if not roles.intersection(tool.required_user_roles):
             raise DecisionError(
                 403, "insufficient_entitlement", "required role missing", tool=tool.id
@@ -289,7 +296,29 @@ class GatewayPipeline:
         if approval_jti is not None:
             self._consumed_jti.add(approval_jti)
 
-        service_token = self._mint_service_token()
+        try:
+            service_token = self._mint_service_token()
+            if self._config.downscope_enabled:
+                service_token = self._downscope_broker.issue(
+                    DownscopeRequest(
+                        tool=tool,
+                        run_id=run_id,
+                        user=user,
+                        client=client,
+                        caller_type=caller_type,
+                        node_id=node_id,
+                        caller_roles=caller_roles,
+                    )
+                )
+        except DownscopeError as exc:
+            if self._config.downscope_fail_closed:
+                raise DecisionError(
+                    503,
+                    "downscope_unavailable",
+                    "failed to issue downscoped backend token",
+                    tool=tool.id,
+                ) from exc
+            service_token = self._mint_service_token()
         return PipelineResult(
             tool=tool,
             user=user,

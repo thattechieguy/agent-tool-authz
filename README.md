@@ -87,6 +87,17 @@ aab apim drift-check \
 
 Generated artifacts are a reusable starting point: swap OpenAPI + app IDs, regenerate, then apply your own scope/role/caller-context standards.
 
+## Dynamic token downscoping
+
+Reference gateway now supports caller-aware downscoping with fail-closed behavior:
+
+- validates caller claims and operation permissions
+- computes minimum required scope/role per operation
+- issues a least-privileged backend token
+- denies request if downscoping broker fails (when fail-closed is enabled)
+
+See `docs/downscoping.md` for broker contract and Azure Function deployment skeleton.
+
 ## User configuration (.env)
 
 Populate `.env` (from `.env.example`) with:

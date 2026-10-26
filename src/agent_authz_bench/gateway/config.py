@@ -18,9 +18,16 @@ class GatewayConfig:
     gateway_audience: str = "api://loans-gateway"
     allowed_clients: tuple[str, ...] = ("loans-agent",)
     backend_service_secret: str = ""
+    backend_audience: str = "loans-backend"
     audit_log_path: str = "logs/gateway-audit.jsonl"
     caller_profiles_path: str = "catalogs/caller-profiles.yaml"
     enforce_caller_context: bool = True
+    downscope_enabled: bool = True
+    downscope_mode: str = "local"
+    downscope_fail_closed: bool = True
+    token_broker_url: str | None = None
+    token_broker_shared_secret: str | None = None
+    token_broker_timeout_seconds: float = 3.0
 
 
 def load_config() -> GatewayConfig:
@@ -43,7 +50,14 @@ def load_config() -> GatewayConfig:
             if part.strip()
         ),
         backend_service_secret=os.getenv("BACKEND_SERVICE_SECRET", default_secret),
+        backend_audience=os.getenv("BACKEND_AUDIENCE", "loans-backend"),
         audit_log_path=os.getenv("AUDIT_LOG_PATH", "logs/gateway-audit.jsonl"),
         caller_profiles_path=os.getenv("CALLER_PROFILES_PATH", "catalogs/caller-profiles.yaml"),
         enforce_caller_context=os.getenv("ENFORCE_CALLER_CONTEXT", "true").lower() == "true",
+        downscope_enabled=os.getenv("DOWNSCOPE_ENABLED", "true").lower() == "true",
+        downscope_mode=os.getenv("DOWNSCOPE_MODE", "local"),
+        downscope_fail_closed=os.getenv("DOWNSCOPE_FAIL_CLOSED", "true").lower() == "true",
+        token_broker_url=os.getenv("TOKEN_BROKER_URL") or None,
+        token_broker_shared_secret=os.getenv("TOKEN_BROKER_SHARED_SECRET") or None,
+        token_broker_timeout_seconds=float(os.getenv("TOKEN_BROKER_TIMEOUT_SECONDS", "3.0")),
     )
