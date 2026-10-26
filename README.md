@@ -24,14 +24,30 @@ This repository focuses on deterministic, executable controls for those authoriz
 ## Architecture flow
 
 ```mermaid
-flowchart LR
-    U[User / Caller] --> O[Orchestrator / Node]
-    O -->|Bearer token + caller claims| G[Gateway / APIM policy]
-    O -->|Run context + approval token| G
-    G -->|Catalog + caller profile + scope/role checks| D{Decision}
-    D -->|Allow| B[Backend API]
-    D -->|Deny| R[Error response + audit]
-    G --> A[(Audit log)]
+flowchart TB
+    subgraph CallerPlane["Caller plane"]
+      U[User / Agent client]
+      O[Orchestrator or MCP/Lang node]
+      U --> O
+    end
+
+    subgraph GatewayPlane["Gateway enforcement plane (APIM)"]
+      G1[1. Validate JWT<br/>audience, issuer, signature]
+      G2[2. Resolve operation<br/>method + path from OpenAPI map]
+      G3[3. Enforce caller policy<br/>caller_type + node_id + allowlist]
+      G4[4. Enforce authz controls<br/>scope, role, tier, approval, replay, rate limit]
+      D{Decision}
+      G1 --> G2 --> G3 --> G4 --> D
+    end
+
+    subgraph BackendPlane["Backend plane"]
+      B[Backend API]
+    end
+
+    O -->|Authorization + caller claims + run context| G1
+    D -->|Allow: gateway-issued service token| B
+    D -->|Deny: structured error| E[Error response]
+    D --> L[(Audit + evidence log)]
 ```
 
 ## What's in the box
