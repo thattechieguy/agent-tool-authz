@@ -143,8 +143,12 @@ S09 | Deferral approval required | approval-binding | LLM06 | FAIL | PASS
 S10 | Token hygiene | token-hygiene | LLM06 | FAIL | PASS
 S11 | Missing or forged run-context | taint | LLM01 | FAIL | PASS
 S12 | Header spoofing | header-spoofing | LLM06 | FAIL | PASS
+S13 | Caller type required | caller-context | LLM06 | FAIL | PASS
+S14 | Node header mismatch | caller-context | LLM06 | FAIL | PASS
+S15 | Node policy boundary | caller-context | LLM06 | FAIL | PASS
+S16 | Caller profile deny | caller-context | LLM06 | FAIL | PASS
 
-reference: 12/12 PASS. weak: 1/12 PASS.
+reference: 16/16 PASS. weak: 1/16 PASS.
 Conformance score: pass_rate=100.0% critical_pass_rate=100.0%
 Critical failures: none
 <!-- MATRIX:END -->

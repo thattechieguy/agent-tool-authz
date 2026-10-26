@@ -1,0 +1,19 @@
+id: S15
+title: Node policy boundary
+category: caller-context
+owasp: [LLM06]
+description: read-only nodes must not invoke write tools.
+steps:
+  - id: s1
+    node: read-node
+    identity: { user: alice, scopes: [Loans.Waiver], caller_type: langgraph-node }
+    context: { tainted: false }
+    request:
+      method: POST
+      path: /loans/L-1001/late-fee-waivers
+      body: { amount: 10 }
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_caller_policy }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }
+

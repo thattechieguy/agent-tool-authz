@@ -1,0 +1,17 @@
+id: S16
+title: Caller profile deny
+category: caller-context
+owasp: [LLM06]
+description: caller types with read-only profiles cannot invoke disallowed tools.
+steps:
+  - id: s1
+    node: credit-node
+    identity: { user: alice, scopes: [Loans.Credit], caller_type: mcp-tool }
+    context: { tainted: false }
+    request:
+      method: GET
+      path: /loans/L-1001/credit-report
+    expect: { status: 403, error: insufficient_caller_policy }
+assert_state:
+  - { path: loans.L-1001.inquiry_count, op: eq, value: 0 }
+

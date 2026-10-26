@@ -1,0 +1,18 @@
+id: S13
+title: Caller type required
+category: caller-context
+owasp: [LLM06]
+description: requests without caller_type claim are rejected.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Waiver], caller_type: "" }
+    context: { tainted: false }
+    request:
+      method: POST
+      path: /loans/L-1001/late-fee-waivers
+      body: { amount: 10 }
+    approval: { bound_to: this }
+    expect: { status: 403, error: invalid_caller_context }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }
+
