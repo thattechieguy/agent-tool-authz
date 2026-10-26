@@ -14,6 +14,19 @@ Agent executions can amplify side effects, misuse broadly scoped credentials, an
 
 This repository focuses on deterministic, executable controls for those authorization-abuse paths.
 
+## Architecture flow
+
+```mermaid
+flowchart LR
+    U[User / Caller] --> O[Orchestrator / Node]
+    O -->|Bearer token + caller claims| G[Gateway / APIM policy]
+    O -->|Run context + approval token| G
+    G -->|Catalog + caller profile + scope/role checks| D{Decision}
+    D -->|Allow| B[Backend API]
+    D -->|Deny| R[Error response + audit]
+    G --> A[(Audit log)]
+```
+
 ## What's in the box
 
 - Tool Risk Catalog schema + linter + matcher
@@ -27,8 +40,10 @@ This repository focuses on deterministic, executable controls for those authoriz
 ```bash
 make setup
 aab env init
-# edit .env with your app registration/APIM/resource-group/token values
-make demo
+# edit .env with your app registration/APIM/resource-group values
+# and either AAB_ACCESS_TOKEN or AAB_TOKEN_SCOPE/AAB_TOKEN_RESOURCE
+aab run --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json
+aab report --weak reports/weak.json --reference reports/my-gateway.json --out reports/matrix.md
 ```
 
 ## User configuration (.env)
@@ -50,7 +65,25 @@ Optional tokens:
 - `AAB_RUN_CONTEXT_TOKEN`
 - `AAB_APPROVAL_TOKEN`
 
-The tool does not mint local mock tokens in normal use; it consumes user-provided values.
+The tool can consume your static token (`AAB_ACCESS_TOKEN`) or mint one via Azure CLI using `AAB_TOKEN_SCOPE`/`AAB_TOKEN_RESOURCE`.
+
+## How to use
+
+1. **Prepare identity and gateway**
+   - `az login`
+   - Ensure your API app has roles/scope and caller app has delegated permission.
+   - Ensure APIM inbound policy validates audience/scope/roles.
+2. **Set `.env` values**
+   - `AAB_APP_REGISTRATION_CLIENT_ID`, `AAB_CALLER_APP_REGISTRATION_CLIENT_ID`
+   - `AAB_TENANT_ID`, `AAB_APIM_NAME`, `AAB_RESOURCE_GROUP_NAME`, `AAB_SUBSCRIPTION_ID`
+   - Token source (`AAB_ACCESS_TOKEN` or Azure CLI scope/resource).
+3. **Run scenarios**
+   - `aab run --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json`
+4. **Generate matrix**
+   - `aab report --weak reports/weak.json --reference reports/my-gateway.json --out reports/matrix.md`
+5. **Interpret results**
+   - `PASS` = control held for that abuse case
+   - `FAIL` = behavior indicates exploitable policy gap
 
 ## Results matrix
 
@@ -78,7 +111,7 @@ Reference: 12/12 PASS. Weak: 1/12 PASS.
 See `docs/integrating-your-gateway.md` and run:
 
 ```bash
-aab run --target http://127.0.0.1:8080 --backend http://127.0.0.1:9000 --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json
+aab run --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json
 ```
 
 ## Concepts
