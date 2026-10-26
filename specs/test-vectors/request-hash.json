@@ -1,0 +1,92 @@
+{
+  "algorithm": "sha256",
+  "notes": "JCS-like canonicalization, not full RFC 8785.",
+  "vectors": [
+    {
+      "description": "Simple GET with no query and empty body",
+      "method": "GET",
+      "path": "/loans/L-1001",
+      "query": {},
+      "body": null,
+      "run_id": "run-a",
+      "expected_hash": "sha256:dfefc2ba6d5925e420742b1e8fd0d0c81ab896ac47eb085daddc12c2dd943a8f"
+    },
+    {
+      "description": "Query keys sorted lexicographically",
+      "method": "GET",
+      "path": "/loans/L-1001/credit-report",
+      "query": {
+        "z": "9",
+        "a": "1"
+      },
+      "body": null,
+      "run_id": "run-a",
+      "expected_hash": "sha256:4caf6827477c7d05f6c045ce04c421ee503197f26d988efc7f86b051e31a405c"
+    },
+    {
+      "description": "JSON body key order normalization",
+      "method": "POST",
+      "path": "/loans/L-1001/income-verification",
+      "query": {},
+      "body": {
+        "monthly_income": 5000,
+        "verified": true
+      },
+      "run_id": "run-a",
+      "expected_hash": "sha256:208c484cf632f6bb587b3d24a8832ab7e3dee4b969894fc95c4e5041e5a5f62a"
+    },
+    {
+      "description": "JSON body with unicode content",
+      "method": "POST",
+      "path": "/loans/L-1001/notes",
+      "query": {},
+      "body": {
+        "comment": "naïve résumé"
+      },
+      "run_id": "run-a",
+      "expected_hash": "sha256:61e21f2cc931caa6c9e058451e4c0470b2379edf0752a4ef662a41e868e141fe"
+    },
+    {
+      "description": "Whitespace in JSON body does not change hash",
+      "method": "POST",
+      "path": "/loans/L-1001/income-verification",
+      "query": {},
+      "body": "{\"verified\": true,   \"monthly_income\": 5000}",
+      "run_id": "run-a",
+      "expected_hash": "sha256:208c484cf632f6bb587b3d24a8832ab7e3dee4b969894fc95c4e5041e5a5f62a"
+    },
+    {
+      "description": "Different run_id changes hash",
+      "method": "POST",
+      "path": "/loans/L-1001/income-verification",
+      "query": {},
+      "body": {
+        "verified": true,
+        "monthly_income": 5000
+      },
+      "run_id": "run-b",
+      "expected_hash": "sha256:bcdd79ded0e1ba43e0b4a4d2715942dae4a7f44f0e2b4f929ddb1c4964b127e6"
+    },
+    {
+      "description": "Query value ordering and percent encoding",
+      "method": "GET",
+      "path": "/search",
+      "query": {
+        "q": "alice bob",
+        "q2": "x/y"
+      },
+      "body": null,
+      "run_id": "run-a",
+      "expected_hash": "sha256:70c8837ac963c230b23d0007be75a9140afe09b0c8633d722d8bb649275ea572"
+    },
+    {
+      "description": "Non-JSON text body remains raw",
+      "method": "POST",
+      "path": "/echo",
+      "query": {},
+      "body": "plain text payload",
+      "run_id": "run-a",
+      "expected_hash": "sha256:f856924a06a29f46f0b855ac93aec128f75ce5b3bd013fe56b39326f9fa0d109"
+    }
+  ]
+}
