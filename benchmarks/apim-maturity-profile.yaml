@@ -1,0 +1,31 @@
+version: "0.1"
+name: apim-caller-aware-authz
+levels:
+  - id: L1
+    name: Baseline policy enforcement
+    required:
+      - jwt-validation
+      - audience-validation
+      - deny-by-default
+      - operation-scope-check
+      - operation-role-check
+  - id: L2
+    name: Caller and execution context controls
+    required:
+      - caller-type-claim-enforcement
+      - node-id-claim-enforcement
+      - run-id-required
+      - approval-required-for-tier3
+  - id: L3
+    name: Abuse-resilience controls
+    required:
+      - approval-request-hash-binding
+      - approval-replay-protection
+      - per-run-rate-limits
+      - taint-aware-tier2-approval
+  - id: L4
+    name: Governed automation
+    required:
+      - ci-policy-gates
+      - policy-drift-check
+      - benchmark-regression-history

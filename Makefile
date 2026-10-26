@@ -4,7 +4,7 @@ PIP := $(VENV)/Scripts/pip
 PY := $(VENV)/Scripts/python
 AAB := $(VENV)/Scripts/aab
 
-.PHONY: setup env-init keys lint test check up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
+.PHONY: setup env-init keys lint test check apim-scaffold apim-drift up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
 
 setup:
 	$(PYTHON) -m venv $(VENV)
@@ -25,6 +25,12 @@ test:
 	$(PY) -m pytest tests/unit
 
 check: lint test
+
+apim-scaffold:
+	$(AAB) apim scaffold --discovery examples/apim/fixtures/discovery.sample.json --policy-out examples/apim/generated/inbound-policy.generated.xml --mapping-out examples/apim/generated/operation-mapping.generated.yaml
+
+apim-drift:
+	$(AAB) apim drift-check --discovery examples/apim/fixtures/discovery.sample.json --policy examples/apim/generated/inbound-policy.generated.xml --mapping examples/apim/generated/operation-mapping.generated.yaml
 
 up-weak:
 	@mkdir -p .run logs reports

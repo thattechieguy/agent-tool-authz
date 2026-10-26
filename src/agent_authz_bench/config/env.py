@@ -32,8 +32,12 @@ class UserInputConfig:
     target_gateway_url: str
     backend_url: str
     static_access_token: str | None
+    token_flow: str
     token_resource: str | None
     token_scope: str | None
+    client_id: str | None
+    client_secret: str | None
+    managed_identity_client_id: str | None
     static_run_context_token: str | None
     static_approval_token: str | None
 
@@ -51,8 +55,12 @@ def load_user_input_config() -> UserInputConfig:
         target_gateway_url=os.getenv("AAB_TARGET_GATEWAY_URL", "http://127.0.0.1:8080"),
         backend_url=os.getenv("AAB_BACKEND_URL", "http://127.0.0.1:9000"),
         static_access_token=os.getenv("AAB_ACCESS_TOKEN") or None,
+        token_flow=os.getenv("AAB_TOKEN_FLOW", "az_cli"),
         token_resource=os.getenv("AAB_TOKEN_RESOURCE") or "https://management.azure.com/",
         token_scope=os.getenv("AAB_TOKEN_SCOPE") or None,
+        client_id=os.getenv("AAB_CLIENT_ID") or None,
+        client_secret=os.getenv("AAB_CLIENT_SECRET") or None,
+        managed_identity_client_id=os.getenv("AAB_MANAGED_IDENTITY_CLIENT_ID") or None,
         static_run_context_token=os.getenv("AAB_RUN_CONTEXT_TOKEN") or None,
         static_approval_token=os.getenv("AAB_APPROVAL_TOKEN") or None,
     )

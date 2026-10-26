@@ -1,0 +1,170 @@
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="invalid_token" require-scheme="Bearer" output-token-variable-name="jwtToken">
+      <openid-config url="https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/.well-known/openid-configuration" />
+      <audiences>
+        <audience>api://11111111-1111-1111-1111-111111111111</audience>
+      </audiences>
+    </validate-jwt>
+    <check-header name="X-Agent-Run-Id" failed-check-httpcode="400" failed-check-error-message="missing_run_id" ignore-case="false" />
+    <set-variable name="callerType" value="@(((Jwt)context.Variables[\"jwtToken\"]).Claims.ContainsKey(\"caller_type\") ? ((Jwt)context.Variables[\"jwtToken\"]).Claims[\"caller_type\"] : \"unknown\")" />
+    <set-variable name="nodeId" value="@(((Jwt)context.Variables[\"jwtToken\"]).Claims.ContainsKey(\"node_id\") ? ((Jwt)context.Variables[\"jwtToken\"]).Claims[\"node_id\"] : \"unknown\")" />
+    <choose>
+      <when condition='@(
+          context.Request.Method == "GET"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Read")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("ReadOnly") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("Servicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <when condition='@(
+          context.Request.Method == "GET"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+/payments$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Read")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("ReadOnly") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("Servicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <when condition='@(
+          context.Request.Method == "GET"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+/credit\-report$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Credit")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("Servicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <when condition='@(
+          context.Request.Method == "POST"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+/deferrals$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Deferral")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <when condition='@(
+          context.Request.Method == "POST"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+/late\-fee\-waivers$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Waiver")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <when condition='@(
+          context.Request.Method == "POST"
+          && System.Text.RegularExpressions.Regex.IsMatch(
+              context.Request.OriginalUrl.Path.ToLowerInvariant(),
+              "^/loans/[^/]+/income\-verification$"))'>
+        <choose>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("scp")
+            && ((Jwt)context.Variables["jwtToken"]).Claims["scp"].Contains("Loans.Income")))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_scope","message":"required scope missing"}</set-body>
+            </return-response>
+          </when>
+          <when condition='@(!(((Jwt)context.Variables["jwtToken"]).Claims.ContainsKey("roles")
+            && (((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("SeniorServicer") || ((Jwt)context.Variables["jwtToken"]).Claims["roles"].Contains("Servicer"))))'>
+            <return-response>
+              <set-status code="403" reason="Forbidden" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"insufficient_entitlement","message":"required role missing"}</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <otherwise>
+        <return-response>
+          <set-status code="404" reason="Not Found" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":"unknown_operation","message":"operation not in policy map"}</set-body>
+        </return-response>
+      </otherwise>
+    </choose>
+  </inbound>
+  <backend><base /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
+</policies>

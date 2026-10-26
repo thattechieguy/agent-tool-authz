@@ -53,6 +53,24 @@ aab run --admin-key test-admin-key --scenarios scenarios --label my-gateway --ou
 aab report --weak reports/weak.json --reference reports/my-gateway.json --scenarios scenarios --out reports/matrix.md
 ```
 
+## APIM skeleton workflow (bring your own app registrations)
+
+```bash
+# 1) discover scopes/roles + API operations
+aab apim discover --openapi examples/apim/loans-backend-openapi.json --out examples/apim/generated/discovery.json
+
+# 2) generate APIM inbound policy + operation permission map
+aab apim scaffold --discovery examples/apim/generated/discovery.json
+
+# 3) keep generated artifacts aligned in CI
+aab apim drift-check \
+  --discovery examples/apim/generated/discovery.json \
+  --policy examples/apim/generated/inbound-policy.generated.xml \
+  --mapping examples/apim/generated/operation-mapping.generated.yaml
+```
+
+Generated artifacts are a reusable starting point: swap OpenAPI + app IDs, regenerate, then apply your own scope/role/caller-context standards.
+
 ## User configuration (.env)
 
 Populate `.env` (from `.env.example`) with:
@@ -151,6 +169,8 @@ See `docs/limitations.md`.
 3. Full RFC 8785 canonicalization.
 4. Distributed replay and rate-limit stores.
 5. Multi-agent delegation scenarios.
+
+Maturity benchmark profile: `benchmarks/apim-maturity-profile.yaml`.
 
 ## Branding and logo
 

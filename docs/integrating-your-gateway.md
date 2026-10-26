@@ -55,6 +55,12 @@ aab run --admin-key <key> --scenarios scenarios --label your-gateway --out repor
 
 For auth, set either `AAB_ACCESS_TOKEN` directly or configure `AAB_TOKEN_RESOURCE` / `AAB_TOKEN_SCOPE` so the runner mints a token via `az account get-access-token`.
 
+Supported token flows:
+
+- `AAB_TOKEN_FLOW=az_cli` (default)
+- `AAB_TOKEN_FLOW=client_credentials` with `AAB_CLIENT_ID` + `AAB_CLIENT_SECRET`
+- `AAB_TOKEN_FLOW=managed_identity` with optional `AAB_MANAGED_IDENTITY_CLIENT_ID`
+
 ## Backend mode
 
 For secure-path scenarios, run backend in `BACKEND_AUTH_MODE=service_token` behind your gateway.
@@ -73,3 +79,15 @@ For secure-path scenarios, run backend in `BACKEND_AUTH_MODE=service_token` behi
 - Setup helper: `examples/apim/setup.ps1`
 - Starter policy: `examples/apim/inbound-policy.xml`
 - Imported API sample: `examples/apim/loans-backend-openapi.json`
+- Discovery fixture: `examples/apim/fixtures/discovery.sample.json`
+- Generated skeleton outputs: `examples/apim/generated/`
+
+## APIM discovery and policy skeleton
+
+Use the CLI to discover your app registration permissions and generate a policy skeleton:
+
+```bash
+aab apim discover --out examples/apim/generated/discovery.json
+aab apim scaffold --discovery examples/apim/generated/discovery.json
+aab apim drift-check --discovery examples/apim/generated/discovery.json
+```

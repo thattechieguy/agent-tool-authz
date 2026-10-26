@@ -26,10 +26,8 @@ class EnvTokenProvider:
     def __init__(self, config: UserInputConfig | None = None) -> None:
         self._config = config or load_user_input_config()
 
-    def access_token(self, identity: dict[str, Any]) -> str:  # noqa: ARG002
-        if self._config.static_access_token:
-            return self._config.static_access_token
-        command = ["az", "account", "get-access-token", "--output", "json"]
+    def _az_access_token(self, base_command: list[str]) -> str:
+        command = [*base_command, "--output", "json"]
         if self._config.token_scope:
             command.extend(["--scope", self._config.token_scope])
         elif self._config.token_resource:
@@ -40,6 +38,37 @@ class EnvTokenProvider:
         if not token:
             raise RuntimeError("Azure CLI did not return an access token.")
         return str(token)
+
+    def access_token(self, identity: dict[str, Any]) -> str:  # noqa: ARG002
+        if self._config.static_access_token:
+            return self._config.static_access_token
+        flow = self._config.token_flow.strip().lower()
+        if flow == "client_credentials":
+            if not self._config.client_id or not self._config.client_secret:
+                raise RuntimeError(
+                    "AAB_CLIENT_ID and AAB_CLIENT_SECRET are required for client_credentials flow."
+                )
+            tenant_id = self._config.tenant_id or "organizations"
+            return self._az_access_token(
+                [
+                    "az",
+                    "account",
+                    "get-access-token",
+                    "--service-principal",
+                    "--username",
+                    self._config.client_id,
+                    "--password",
+                    self._config.client_secret,
+                    "--tenant",
+                    tenant_id,
+                ]
+            )
+        if flow == "managed_identity":
+            command = ["az", "account", "get-access-token", "--identity"]
+            if self._config.managed_identity_client_id:
+                command.extend(["--client-id", self._config.managed_identity_client_id])
+            return self._az_access_token(command)
+        return self._az_access_token(["az", "account", "get-access-token"])
 
     def run_context(self, run_id: str, ctx: dict[str, Any] | str | None) -> str | None:  # noqa: ARG002
         if ctx == "omit":

@@ -1,0 +1,61 @@
+version: '0.1'
+source:
+  tenant_id: 00000000-0000-0000-0000-000000000000
+  api_app_id: 11111111-1111-1111-1111-111111111111
+  caller_app_id: 22222222-2222-2222-2222-222222222222
+  openapi_path: examples/apim/loans-backend-openapi.json
+operations:
+- operation_id: get_loan_loans__loan_id__get
+  method: GET
+  path: /loans/{loan_id}
+  risk_tier: 1
+  approval: not_required
+  required_scope: Loans.Read
+  required_roles:
+  - ReadOnly
+  - SeniorServicer
+  - Servicer
+- operation_id: get_payments_loans__loan_id__payments_get
+  method: GET
+  path: /loans/{loan_id}/payments
+  risk_tier: 1
+  approval: not_required
+  required_scope: Loans.Read
+  required_roles:
+  - ReadOnly
+  - SeniorServicer
+  - Servicer
+- operation_id: get_credit_report_loans__loan_id__credit_report_get
+  method: GET
+  path: /loans/{loan_id}/credit-report
+  risk_tier: 2
+  approval: not_required
+  required_scope: Loans.Credit
+  required_roles:
+  - SeniorServicer
+  - Servicer
+- operation_id: create_deferral_loans__loan_id__deferrals_post
+  method: POST
+  path: /loans/{loan_id}/deferrals
+  risk_tier: 3
+  approval: required
+  required_scope: Loans.Deferral
+  required_roles:
+  - SeniorServicer
+- operation_id: waive_late_fee_loans__loan_id__late_fee_waivers_post
+  method: POST
+  path: /loans/{loan_id}/late-fee-waivers
+  risk_tier: 3
+  approval: required
+  required_scope: Loans.Waiver
+  required_roles:
+  - SeniorServicer
+- operation_id: update_income_verification_loans__loan_id__income_verification_post
+  method: POST
+  path: /loans/{loan_id}/income-verification
+  risk_tier: 2
+  approval: required_if_tainted
+  required_scope: Loans.Income
+  required_roles:
+  - SeniorServicer
+  - Servicer
