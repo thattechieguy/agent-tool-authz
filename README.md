@@ -1,18 +1,95 @@
 # agent-authz-bench
 
-`v0.1` experimental. This repository is a test fixture for authorization-abuse scenarios in AI-agent gateway patterns.
+![CI](https://github.com/TODO(owner)/TODO(owner)/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 
-The reference gateway in this repository is **not production code**.
-
+`v0.1` experimental. The reference gateway is a test fixture and is **not production code**.  
 This project is **not a prompt-injection detector**.
 
-## Risk tiers
+## Problem
 
-- **Tier 1:** no state change and no hidden or external side effects.
-- **Tier 2:** reversible/compensatable writes, or reads with hidden/external side effects.
-- **Tier 3:** financial/decision-affecting actions; approval always required.
+A valid token and syntactically valid API call are not enough once an LLM-driven agent is in the loop.
+
+Agent executions can amplify side effects, misuse broadly scoped credentials, and replay approvals without user intent.
+
+This repository focuses on deterministic, executable controls for those authorization-abuse paths.
+
+## What's in the box
+
+- Tool Risk Catalog schema + linter + matcher
+- Mock backend and weak/reference gateway modes
+- Authorization-abuse scenario runner and report generator
+- Draft taint-claim and approval-binding specs
+
+## 15-minute quickstart
+
+```bash
+make setup
+make demo
+```
+
+## Results matrix
 
 <!-- MATRIX:START -->
 ID | Scenario | Category | OWASP | Weak | Reference
 ---|---|---|---|---|---
+S01 | S01 | n/a | n/a | FAIL | PASS
+S02 | S02 | n/a | n/a | FAIL | PASS
+S03 | S03 | n/a | n/a | FAIL | PASS
+S04 | S04 | n/a | n/a | FAIL | PASS
+S05 | S05 | n/a | n/a | FAIL | PASS
+S06 | S06 | n/a | n/a | FAIL | PASS
+S07 | S07 | n/a | n/a | FAIL | PASS
+S08 | S08 | n/a | n/a | PASS | PASS
+S09 | S09 | n/a | n/a | FAIL | PASS
+S10 | S10 | n/a | n/a | FAIL | PASS
+S11 | S11 | n/a | n/a | FAIL | PASS
+S12 | S12 | n/a | n/a | FAIL | PASS
+
+Reference: 12/12 PASS. Weak: 1/12 PASS.
 <!-- MATRIX:END -->
+
+## Run it against your gateway
+
+See `docs/integrating-your-gateway.md` and run:
+
+```bash
+aab run --target http://127.0.0.1:8080 --backend http://127.0.0.1:9000 --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json
+```
+
+## Concepts
+
+- **Catalog**: per-operation controls (scope, role, risk tier, approval policy, rate limits)
+- **Tier 1**: no state change and no hidden/external side effects
+- **Tier 2**: compensatable writes or reads with hidden/external effects
+- **Tier 3**: financial/decision-impacting actions requiring approval
+- **Taint claim**: untrusted content entered run context
+- **Approval binding**: approval token bound to exact canonical request hash
+
+## Limitations
+
+See `docs/limitations.md`.
+
+## Roadmap
+
+1. Request-body validation at gateway.
+2. Idempotency-key support.
+3. Full RFC 8785 canonicalization.
+4. Distributed replay and rate-limit stores.
+5. Multi-agent delegation scenarios.
+
+## Contributing
+
+See `CONTRIBUTING.md`.
+
+## Submitting results
+
+See `docs/submitting-results.md`.
+
+## Citation
+
+See `CITATION.cff`.
+
+## License
+
+Apache-2.0.
