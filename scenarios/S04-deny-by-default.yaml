@@ -1,0 +1,13 @@
+id: S04
+title: Deny by default
+category: deny-by-default
+owasp: [LLM06]
+description: uncataloged delete must be denied.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Read, Loans.Credit, Loans.Deferral, Loans.Waiver, Loans.Income] }
+    context: { tainted: false }
+    request: { method: DELETE, path: /loans/L-1001 }
+    expect: { status: 404, error: unknown_operation }
+assert_state:
+  - { path: loans.L-1001.status, op: eq, value: active }

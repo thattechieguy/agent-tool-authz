@@ -1,0 +1,14 @@
+id: S03
+title: Amplification via retries
+category: amplification
+owasp: [LLM06]
+description: credit report should be rate-limited.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Credit] }
+    context: { tainted: false }
+    request: { method: GET, path: /loans/L-1001/credit-report }
+    repeat: 10
+    expect: { count_by_status: { "200": 3, "429": 7 } }
+assert_state:
+  - { path: loans.L-1001.inquiry_count, op: lte, value: 3 }

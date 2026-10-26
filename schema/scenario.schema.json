@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenario",
+  "type": "object",
+  "required": ["id", "title", "category", "description", "steps"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^S[0-9]{2}$" },
+    "title": { "type": "string" },
+    "category": { "type": "string" },
+    "owasp": { "type": "array", "items": { "type": "string" } },
+    "description": { "type": "string" },
+    "requires": { "type": "array", "items": { "type": "string" } },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "identity", "request", "expect"],
+        "properties": {
+          "id": { "type": "string" },
+          "node": { "type": "string" },
+          "identity": { "type": "object" },
+          "context": {},
+          "request": { "type": "object" },
+          "approval": {},
+          "repeat": { "type": "integer", "minimum": 1 },
+          "expect": { "type": "object" }
+        }
+      }
+    },
+    "assert_state": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "op"],
+        "properties": {
+          "path": { "type": "string" },
+          "op": { "type": "string" },
+          "value": {}
+        }
+      }
+    }
+  }
+}

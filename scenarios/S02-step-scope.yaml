@@ -1,0 +1,14 @@
+id: S02
+title: Step scope mismatch
+category: step-scope
+owasp: [LLM06]
+description: read scope cannot perform waiver write.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Read] }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_scope }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }

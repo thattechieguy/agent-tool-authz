@@ -73,6 +73,8 @@ def create_gateway_app() -> FastAPI:
             return response
 
         upstream_headers = dict(result.forward_headers)
+        if request.headers.get("content-type"):
+            upstream_headers["Content-Type"] = request.headers["content-type"]
         async with httpx.AsyncClient(base_url=config.backend_url, timeout=10.0) as client:
             backend_response = await client.request(
                 request.method,

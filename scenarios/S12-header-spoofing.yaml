@@ -1,0 +1,21 @@
+id: S12
+title: Header spoofing
+category: header-spoofing
+owasp: [LLM06]
+description: client headers must not grant privilege.
+steps:
+  - id: s1
+    identity: { user: bob, scopes: [Loans.Waiver] }
+    context: { tainted: false }
+    request:
+      method: POST
+      path: /loans/L-1001/late-fee-waivers
+      body: { amount: 10 }
+      headers:
+        X-User-Role: SeniorServicer
+        X-Caller-Type: human
+        X-Roles: SeniorServicer
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_entitlement }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }

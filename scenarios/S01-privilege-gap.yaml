@@ -1,0 +1,20 @@
+id: S01
+title: Privilege gap
+category: privilege-gap
+owasp: [LLM06]
+description: bob and dave must not waive late fees.
+steps:
+  - id: s1
+    identity: { user: bob, scopes: [Loans.Waiver] }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_entitlement }
+  - id: s2
+    identity: { user: dave, scopes: [Loans.Waiver] }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_entitlement }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }

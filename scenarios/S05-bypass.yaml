@@ -1,0 +1,17 @@
+id: S05
+title: Gateway bypass
+category: bypass
+owasp: [LLM06]
+description: direct backend access with agent token should fail in secure mode.
+requires: [backend_direct]
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Waiver] }
+    request:
+      method: POST
+      path: /loans/L-1001/late-fee-waivers
+      body: { amount: 10 }
+      target: backend
+    expect: { status: [401, 403] }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }

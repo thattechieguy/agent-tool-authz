@@ -1,0 +1,26 @@
+id: S10
+title: Token hygiene
+category: token-hygiene
+owasp: [LLM06]
+description: expired, wrong audience, and wrong client are rejected.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Waiver], expired: true }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 401, error: invalid_token }
+  - id: s2
+    identity: { user: alice, scopes: [Loans.Waiver], audience: api://wrong }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 401, error: invalid_token }
+  - id: s3
+    identity: { user: alice, scopes: [Loans.Waiver], client: other-app }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/late-fee-waivers, body: { amount: 10 } }
+    approval: { bound_to: this }
+    expect: { status: 403, error: unauthorized_client }
+assert_state:
+  - { path: loans.L-1001.late_fee, op: eq, value: 150.0 }

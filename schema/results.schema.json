@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Run results",
+  "type": "object",
+  "required": ["tool_version", "label", "timestamp", "environment", "scenarios"],
+  "properties": {
+    "tool_version": { "type": "string" },
+    "label": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "environment": { "type": "object" },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "outcome", "steps", "state_assertions"],
+        "properties": {
+          "id": { "type": "string" },
+          "outcome": { "enum": ["PASS", "FAIL", "SKIP"] },
+          "steps": { "type": "array" },
+          "state_assertions": { "type": "array" }
+        }
+      }
+    }
+  }
+}

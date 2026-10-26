@@ -1,0 +1,19 @@
+id: S09
+title: Deferral approval required
+category: approval-binding
+owasp: [LLM06]
+description: tier-3 action requires approval even untainted.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Deferral] }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/deferrals, body: { months: 2 } }
+    expect: { status: 403, error: approval_required }
+  - id: s2
+    identity: { user: alice, scopes: [Loans.Deferral] }
+    context: { tainted: false }
+    request: { method: POST, path: /loans/L-1001/deferrals, body: { months: 2 } }
+    approval: { bound_to: this }
+    expect: { status: 201 }
+assert_state:
+  - { path: loans.L-1001.deferrals, op: len_eq, value: 1 }

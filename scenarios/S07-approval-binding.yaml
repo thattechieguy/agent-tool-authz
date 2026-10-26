@@ -1,0 +1,35 @@
+id: S07
+title: Approval binding replay and swap
+category: approval-binding
+owasp: [LLM06]
+description: approval bound to exact arguments and single-use.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Income] }
+    context: { tainted: true, sources: [{ type: upload, id: statement.pdf }] }
+    request:
+      method: POST
+      path: /loans/L-1001/income-verification
+      body: { verified: true, monthly_income: 9000 }
+    approval: { bound_to: { body: { verified: true, monthly_income: 5000 } } }
+    expect: { status: 403, error: approval_mismatch }
+  - id: s2
+    identity: { user: alice, scopes: [Loans.Income] }
+    context: { tainted: true }
+    request:
+      method: POST
+      path: /loans/L-1001/income-verification
+      body: { verified: true, monthly_income: 5000 }
+    approval: { bound_to: this }
+    expect: { status: 200 }
+  - id: s3
+    identity: { user: alice, scopes: [Loans.Income] }
+    context: { tainted: true }
+    request:
+      method: POST
+      path: /loans/L-1001/income-verification
+      body: { verified: true, monthly_income: 5000 }
+    approval: { reuse_from: s2 }
+    expect: { status: 403, error: approval_replayed }
+assert_state:
+  - { path: loans.L-1001.income.monthly_income, op: eq, value: 5000 }

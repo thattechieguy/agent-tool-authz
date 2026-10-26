@@ -1,0 +1,18 @@
+id: S08
+title: Positive control
+category: positive-control
+owasp: [LLM10]
+description: valid low-risk reads succeed.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Read, Loans.Credit] }
+    context: { tainted: false }
+    request: { method: GET, path: /loans/L-1001 }
+    expect: { status: 200 }
+  - id: s2
+    identity: { user: alice, scopes: [Loans.Read, Loans.Credit] }
+    context: { tainted: false }
+    request: { method: GET, path: /loans/L-1001/credit-report }
+    expect: { status: 200 }
+assert_state:
+  - { path: loans.L-1001.inquiry_count, op: eq, value: 1 }

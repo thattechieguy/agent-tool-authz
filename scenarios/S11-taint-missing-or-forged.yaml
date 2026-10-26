@@ -1,0 +1,24 @@
+id: S11
+title: Missing or forged run-context
+category: taint
+owasp: [LLM01]
+description: missing context fails closed, forged context rejected.
+steps:
+  - id: s1
+    identity: { user: alice, scopes: [Loans.Income] }
+    context: omit
+    request:
+      method: POST
+      path: /loans/L-1001/income-verification
+      body: { verified: true, monthly_income: 9000 }
+    expect: { status: 403, error: approval_required }
+  - id: s2
+    identity: { user: alice, scopes: [Loans.Income] }
+    context: forged
+    request:
+      method: POST
+      path: /loans/L-1001/income-verification
+      body: { verified: true, monthly_income: 9000 }
+    expect: { status: 401, error: invalid_run_context }
+assert_state:
+  - { path: loans.L-1001.income.verified, op: eq, value: false }

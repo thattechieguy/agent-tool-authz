@@ -11,3 +11,8 @@ This project is **not a prompt-injection detector**.
 - **Tier 1:** no state change and no hidden or external side effects.
 - **Tier 2:** reversible/compensatable writes, or reads with hidden/external side effects.
 - **Tier 3:** financial/decision-affecting actions; approval always required.
+
+<!-- MATRIX:START -->
+ID | Scenario | Category | OWASP | Weak | Reference
+---|---|---|---|---|---
+<!-- MATRIX:END -->
