@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-authz-bench"
+version = "0.1.0"
+description = "Authorization abuse scenario suite and reference gateway for AI agents"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "TODO(owner)" }]
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "httpx",
+  "pydantic>=2",
+  "pyyaml",
+  "jsonschema",
+  "pyjwt[crypto]",
+  "cryptography",
+  "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "ruff",
+  "mypy",
+]
+
+[project.scripts]
+aab = "agent_authz_bench.cli:app"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

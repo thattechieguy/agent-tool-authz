@@ -1,0 +1,1 @@
+"""Gateway authorization pipeline."""
