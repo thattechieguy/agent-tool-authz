@@ -1,2 +1,0 @@
-[console_scripts]
-aab = agent_authz_bench.cli:app

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/agent-authz-bench/catalog.schema.json",
+  "title": "Agent Tool Risk Catalog",
+  "type": "object",
+  "required": ["catalog_version", "service", "tools"],
+  "additionalProperties": false,
+  "properties": {
+    "catalog_version": { "const": "0.1" },
+    "service": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/tool" }
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "operation",
+        "risk_tier",
+        "side_effects",
+        "reversibility",
+        "required_scope",
+        "required_user_roles",
+        "backend_identity",
+        "approval"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "description": { "type": "string" },
+        "operation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "path"],
+          "properties": {
+            "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "path": { "type": "string", "pattern": "^/" }
+          }
+        },
+        "risk_tier": { "enum": [1, 2, 3] },
+        "side_effects": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state_change"],
+          "properties": {
+            "state_change": { "type": "boolean" },
+            "hidden": { "type": "array", "items": { "type": "string" } },
+            "external": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "reversibility": { "enum": ["reversible", "compensatable", "irreversible"] },
+        "idempotent": { "type": "boolean" },
+        "required_scope": { "type": "string" },
+        "required_user_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "backend_identity": { "enum": ["delegated_token", "service_account", "either"] },
+        "approval": { "enum": ["not_required", "required_if_tainted", "required"] },
+        "rate_limit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["calls", "period_seconds"],
+          "properties": {
+            "calls": { "type": "integer", "minimum": 1 },
+            "period_seconds": { "type": "integer", "minimum": 1 },
+            "key": { "enum": ["run", "user", "agent"] }
+          }
+        },
+        "data_classes": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "risk_tier": { "const": 3 } } },
+          "then": { "properties": { "approval": { "const": "required" } } }
+        },
+        {
+          "if": { "properties": { "risk_tier": { "const": 1 } } },
+          "then": {
+            "properties": {
+              "side_effects": {
+                "properties": {
+                  "state_change": { "const": false },
+                  "hidden": { "maxItems": 0 },
+                  "external": { "maxItems": 0 }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
