@@ -1,8 +1,15 @@
 PYTHON ?= python
 VENV ?= .venv
-PIP := $(VENV)/Scripts/pip
-PY := $(VENV)/Scripts/python
-AAB := $(VENV)/Scripts/aab
+
+ifeq ($(OS),Windows_NT)
+VENV_BIN := $(VENV)/Scripts
+else
+VENV_BIN := $(VENV)/bin
+endif
+
+PIP := $(VENV_BIN)/pip
+PY := $(VENV_BIN)/python
+AAB := $(VENV_BIN)/aab
 
 .PHONY: setup env-init keys lint test check apim-scaffold apim-drift up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
 

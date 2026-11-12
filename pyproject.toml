@@ -27,6 +27,8 @@ dev = [
   "pytest",
   "ruff",
   "mypy",
+  "types-jsonschema",
+  "types-PyYAML",
 ]
 
 [project.scripts]

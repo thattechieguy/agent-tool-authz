@@ -24,7 +24,7 @@ def create_gateway_app() -> FastAPI:
     async def proxy(path: str, request: Request) -> Response:
         body = await request.body()
         if len(body) > 64 * 1024:
-            response = JSONResponse(
+            response: Response = JSONResponse(
                 status_code=413,
                 content={
                     "error": "body_too_large",

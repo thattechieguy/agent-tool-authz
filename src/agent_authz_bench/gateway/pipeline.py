@@ -123,7 +123,7 @@ class GatewayPipeline:
 
     def _decode_access_token(self, token: str, *, weak: bool) -> dict[str, Any]:
         key = (Path(self._config.keys_dir) / "idp.public.pem").read_bytes()
-        options = {"verify_aud": not weak}
+        options: jwt.types.Options = {"verify_aud": not weak}
         return jwt.decode(
             token,
             key=key,
