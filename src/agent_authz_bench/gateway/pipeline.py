@@ -47,6 +47,9 @@ class PipelineResult:
     node_id: str
     tainted: bool
     approval_jti: str | None
+    action_request_hash: str | None
+    approval_approver: str | None
+    approval_expires_at: int | None
     forward_headers: dict[str, str]
 
 
@@ -186,6 +189,9 @@ class GatewayPipeline:
                 node_id=node_id,
                 tainted=False,
                 approval_jti=None,
+                action_request_hash=None,
+                approval_approver=None,
+                approval_expires_at=None,
                 forward_headers={
                     "Authorization": f"Bearer {service_token}",
                     "X-Caller-Type": "agent",
@@ -257,6 +263,8 @@ class GatewayPipeline:
         req_hash = request_hash(method, normalized_path, query or {}, body_text, run_id)
         approval_token = headers.get("x-approval-token")
         approval_jti: str | None = None
+        approval_approver: str | None = None
+        approval_expires_at: int | None = None
         if approval_required and not approval_token:
             raise DecisionError(
                 403,
@@ -288,6 +296,8 @@ class GatewayPipeline:
                     403, "approval_mismatch", "approval hash mismatch", tool=tool.id
                 )
             approval_jti = str(approval_claims.get("jti"))
+            approval_approver = str(approval_claims.get("approver", "unknown"))
+            approval_expires_at = int(approval_claims["exp"])
             if approval_jti in self._consumed_jti:
                 raise DecisionError(
                     403, "approval_replayed", "approval token replayed", tool=tool.id
@@ -329,6 +339,9 @@ class GatewayPipeline:
             node_id=node_id,
             tainted=tainted,
             approval_jti=approval_jti,
+            action_request_hash=req_hash,
+            approval_approver=approval_approver,
+            approval_expires_at=approval_expires_at,
             forward_headers={
                 "Authorization": f"Bearer {service_token}",
                 "X-Caller-Type": caller_type,

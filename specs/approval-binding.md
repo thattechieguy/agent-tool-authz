@@ -68,6 +68,23 @@ Normative request-hash algorithm: `tokens/hashing.py` and vectors in `specs/test
 - Standard claim names and media-type registration path.
 - Interop profile for distributed replay stores.
 
+# Approval binding and execution evidence
+
+Approvals for sensitive actions must be bound to the canonical request hash, including the HTTP
+method, normalized path, canonical query, canonical body, and agent run ID. The gateway must
+reject an approval when the hash or run ID differs and must consume the approval ID after a
+successful use.
+
+For each allowed request, the gateway audit event records:
+
+- the action request hash;
+- the approval ID, approver, and approval expiry when approval was used;
+- the caller, run ID, node ID, operation, method, normalized path, and decision.
+
+For a denial caused by a missing approval, the event records the expected approval request hash.
+These hashes permit an independent audit system to verify that the approved and executed
+parameters were identical without persisting sensitive request bodies in the gateway log.
+
 ## Changelog
 
 - v0.1: initial draft.

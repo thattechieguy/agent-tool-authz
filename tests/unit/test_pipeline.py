@@ -1,6 +1,8 @@
+import json
 import os
 from pathlib import Path
 
+import httpx
 import jwt
 import pytest
 from fastapi.testclient import TestClient
@@ -289,6 +291,60 @@ def test_reference_mode_issues_downscoped_backend_token() -> None:
     assert claims["roles"] == ["SeniorServicer"]
     assert claims["tool_id"] == "waive_late_fee"
     assert claims["caller_type"] == "ai-orchestrator"
+    assert result.action_request_hash == request_hash(
+        "POST",
+        "/loans/L-1001/late-fee-waivers",
+        {},
+        '{"amount": 10}',
+        "run-abc",
+    )
+    assert result.approval_jti is not None
+    assert result.approval_approver == "supervisor-1"
+    assert result.approval_expires_at is not None
+
+
+def test_allowed_action_writes_approval_evidence(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    audit_log = tmp_path / "gateway-audit.jsonl"
+    monkeypatch.setenv("GATEWAY_MODE", "reference")
+    monkeypatch.setenv("BACKEND_URL", "http://127.0.0.1:9000")
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(audit_log))
+
+    class FakeClient:
+        async def __aenter__(self):  # noqa: ANN204
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+            return None
+
+        async def request(self, *args, **kwargs):  # noqa: ANN001, ANN002
+            return httpx.Response(200, json={"ok": True})
+
+    monkeypatch.setattr("agent_authz_bench.gateway.app.httpx.AsyncClient", lambda **_: FakeClient())
+    body = {"amount": 10}
+    action_hash = request_hash(
+        "POST", "/loans/L-1001/late-fee-waivers", {}, body, "run-approval-evidence"
+    )
+    approval_token, approval_jti = issue_approval(
+        "run-approval-evidence", action_hash, approver="supervisor-a"
+    )
+    response = TestClient(create_gateway_app()).post(
+        "/loans/L-1001/late-fee-waivers",
+        json=body,
+        headers={
+            **_headers(user="alice", scopes=["Loans.Waiver"], run_id="run-approval-evidence"),
+            "X-Approval-Token": approval_token,
+        },
+    )
+
+    assert response.status_code == 200
+    event = json.loads(audit_log.read_text(encoding="utf-8").strip())
+    assert event["decision"] == "allow"
+    assert event["action_request_hash"] == action_hash
+    assert event["approval_jti"] == approval_jti
+    assert event["approval_approver"] == "supervisor-a"
+    assert event["approval_expires_at"] is not None
 
 
 def test_reference_mode_fails_closed_when_broker_unavailable(

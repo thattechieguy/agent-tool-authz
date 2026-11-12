@@ -58,16 +58,85 @@ flowchart TB
 - Draft taint-claim and approval-binding specs
 - Caller-identity contract and caller profile policy pack
 
-## Quickstart
+## Start here: run the local demo
+
+The local demo is the recommended first step. It runs entirely on your machine with synthetic
+identities, test keys, and loan data; it does **not** require Azure, an Entra tenant, `az login`,
+an API key, or an LLM. It starts temporary local services, runs the weak and reference gateway
+fixtures, and writes a PASS/FAIL matrix to `reports/matrix.md`.
+
+### Prerequisites
+
+- Git
+- Python 3.11 or newer
+- Internet access for the initial Python package installation
+
+### Windows PowerShell
 
 ```bash
-make setup
-aab env init
-# edit .env with your app registration/APIM/resource-group values
-# and either AAB_ACCESS_TOKEN or AAB_TOKEN_SCOPE/AAB_TOKEN_RESOURCE
-aab run --admin-key test-admin-key --scenarios scenarios --label my-gateway --out reports/my-gateway.json
-aab report --weak reports/weak.json --reference reports/my-gateway.json --scenarios scenarios --out reports/matrix.md
+git clone https://github.com/thattechieguy/agent-tool-authz.git
+cd agent-tool-authz
+.\scripts\public-demo.ps1
 ```
+
+### macOS or Linux
+
+```bash
+git clone https://github.com/thattechieguy/agent-tool-authz.git
+cd agent-tool-authz
+./scripts/public-demo.sh
+```
+
+Expected result: the weak fixture fails the abuse scenarios while the reference fixture passes
+them. The test process creates disposable local cryptographic keys; do not reuse them outside the
+fixture.
+
+## Test your gateway
+
+Run this only against an isolated test environment. The runner sends intentionally abusive
+requests and resets/checks synthetic backend state between scenarios.
+
+You need:
+
+- A reachable non-production gateway and backend.
+- A test-only backend admin/reset endpoint compatible with the [HTTP contract](docs/integrating-your-gateway.md).
+- Test identities and tokens containing the audience, scopes, roles, and caller-context claims
+  expected by your gateway.
+- A token source: a static `AAB_ACCESS_TOKEN`, Azure CLI (`az login` plus
+  `AAB_TOKEN_SCOPE` or `AAB_TOKEN_RESOURCE`), client credentials, or managed identity.
+- Run-context and approval tokens if your gateway enforces those controls.
+
+Install the CLI and create a local configuration file:
+
+```bash
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\pip install -e ".[dev]"
+.\.venv\Scripts\aab env init
+# macOS/Linux: .venv/bin/pip install -e ".[dev]" && .venv/bin/aab env init
+```
+
+Set the endpoint and token values in `.env`, using `.env.example` as the field reference, then
+run:
+
+```bash
+# Windows PowerShell
+.\.venv\Scripts\aab run --target https://your-test-gateway --backend https://your-test-backend --admin-key <test-only-admin-key> --scenarios scenarios --label your-gateway --out reports/your-gateway.json
+
+# macOS/Linux
+.venv/bin/aab run --target https://your-test-gateway --backend https://your-test-backend --admin-key <test-only-admin-key> --scenarios scenarios --label your-gateway --out reports/your-gateway.json
+```
+
+See [integrating your gateway](docs/integrating-your-gateway.md) for request headers, expected
+responses, and token-provider integration. Do not supply production credentials or point the
+runner at production APIs.
+
+## Azure APIM proof of concept
+
+`azure-poc/` is optional and separate from the local demo. It requires a dev/test Azure
+subscription, Microsoft Entra permissions to create app registrations and test users, an APIM
+instance, App Service resources, Python 3.11+, and Azure CLI/browser sign-in. It can incur Azure
+costs. Follow [the Azure POC guide](azure-poc/README.md) before provisioning anything.
 
 ## APIM skeleton workflow (bring your own app registrations)
 

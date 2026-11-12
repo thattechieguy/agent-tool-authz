@@ -68,6 +68,12 @@ def create_gateway_app() -> FastAPI:
                     "reason": exc.error,
                     "tainted": None,
                     "approval_jti": None,
+                    "action_request_hash": None,
+                    "approval_approver": None,
+                    "approval_expires_at": None,
+                    "expected_approval_request_hash": (
+                        exc.extra.get("approval_request_hash") if exc.extra else None
+                    ),
                 },
             )
             return response
@@ -104,6 +110,10 @@ def create_gateway_app() -> FastAPI:
                 "reason": "allow",
                 "tainted": result.tainted,
                 "approval_jti": result.approval_jti,
+                "action_request_hash": result.action_request_hash,
+                "approval_approver": result.approval_approver,
+                "approval_expires_at": result.approval_expires_at,
+                "expected_approval_request_hash": None,
             },
         )
         return response
