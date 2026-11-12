@@ -131,13 +131,6 @@ See [integrating your gateway](docs/integrating-your-gateway.md) for request hea
 responses, and token-provider integration. Do not supply production credentials or point the
 runner at production APIs.
 
-## Azure APIM proof of concept
-
-`azure-poc/` is optional and separate from the local demo. It requires a dev/test Azure
-subscription, Microsoft Entra permissions to create app registrations and test users, an APIM
-instance, App Service resources, Python 3.11+, and Azure CLI/browser sign-in. It can incur Azure
-costs. Follow [the Azure POC guide](azure-poc/README.md) before provisioning anything.
-
 ## APIM skeleton workflow (bring your own app registrations)
 
 ```bash
