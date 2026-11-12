@@ -106,6 +106,10 @@ requests and resets/checks synthetic backend state between scenarios.
 6. Run `aab run` against a non-production environment.
 7. Use the generated report to correct authorization behavior that differs from the expected result.
 
+Alternate-gateway runs are welcome. Report the scenario results, scenarios that your gateway or
+control model cannot represent, and material gateway/control limitations; see
+[submitting results](docs/submitting-results.md).
+
 You need:
 
 - A reachable non-production gateway and backend.

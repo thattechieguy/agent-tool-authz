@@ -12,4 +12,9 @@ aab run --target http://your-gateway --backend http://your-backend --admin-key <
    - GitHub issue using `.github/ISSUE_TEMPLATE/gateway_results.md`, or
    - PR adding a file under `results/community/`.
 
-Do not fabricate results. Include product/version and setup notes.
+Do not fabricate results. Include product/version and setup notes. For alternate gateways, also
+report:
+
+- the scenario results (including the result JSON);
+- scenarios that cannot be represented by the gateway or its available controls, with why; and
+- material gateway or control limitations that affect interpretation.

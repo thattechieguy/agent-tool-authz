@@ -23,6 +23,12 @@ make check
 - It includes a state assertion when side effects are relevant.
 - It includes a clear expected outcome for both baseline and reference profiles.
 
+## Alternate gateway results
+
+Runs against alternate gateways are welcome. Include the scenario results, identify scenarios that
+cannot be represented by the gateway or its controls, and describe material gateway/control
+limitations. See [submitting results](docs/submitting-results.md) for submission options.
+
 ## Adding a catalog example
 
 1. Add/update catalog YAML.

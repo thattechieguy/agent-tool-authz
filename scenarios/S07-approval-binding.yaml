@@ -18,7 +18,7 @@ steps:
     context: { tainted: true }
     request:
       method: POST
-      path: /loans/L-1001/income-verification
+      path: /loans/L-1002/income-verification
       body: { verified: true, monthly_income: 5000 }
     approval: { bound_to: this }
     expect: { status: 200 }
@@ -27,9 +27,12 @@ steps:
     context: { tainted: true }
     request:
       method: POST
-      path: /loans/L-1001/income-verification
+      path: /loans/L-1002/income-verification
       body: { verified: true, monthly_income: 5000 }
     approval: { reuse_from: s2 }
     expect: { status: 403, error: approval_replayed }
 assert_state:
-  - { path: loans.L-1001.income.monthly_income, op: eq, value: 5000 }
+  - { path: loans.L-1001.income.verified, op: eq, value: false }
+  - { path: loans.L-1001.income.monthly_income, op: eq, value: null }
+  - { path: loans.L-1002.income.monthly_income, op: eq, value: 5000 }
+  - { path: audit, op: len_eq, value: 1 }

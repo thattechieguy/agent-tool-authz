@@ -96,6 +96,7 @@ def issue_approval(
     *,
     approver: str = "supervisor-1",
     signing_key: str = "approval",
+    expired: bool = False,
 ) -> tuple[str, str]:
     """Issue an RS256 approval token and return token plus jti."""
     now = _now()
@@ -107,7 +108,9 @@ def issue_approval(
         "req_hash": req_hash,
         "approver": approver,
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(seconds=300)).timestamp()),
+        "exp": int(
+            (now - timedelta(seconds=1) if expired else now + timedelta(seconds=300)).timestamp()
+        ),
         "jti": jti,
     }
     token = jwt.encode(

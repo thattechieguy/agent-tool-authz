@@ -47,6 +47,24 @@ Normative request-hash algorithm: `tokens/hashing.py` and vectors in `specs/test
 - Does not authenticate approver identity by itself; that is approval-service scope.
 - TOCTOU risk is reduced by hashing the actual forwarded request.
 
+## Approval evidence provenance and trust boundary
+
+The gateway is a verifier, not the source of proof that a human approved an action. Its audit
+record can show that a token with particular claims was accepted for a request hash; it does not,
+on its own, prove that a human reviewed or authorized that request.
+
+The local fixture and Azure POC approval services are deliberately in-memory demonstrations. They
+are useful for exercising request binding, expiry, and single-use behavior, but they are not a
+production approval-evidence system. A production issuer and its evidence store must be
+independently controlled from the agent and orchestrator that request approval. That system must
+authenticate the approver and retain the approval decision and the bound request evidence under
+its own access, retention, and audit controls. An agent must not be able to create, alter, or
+consume the authoritative approval record by itself.
+
+Gateway audit events complement that independently controlled record by correlating the executed
+request hash and approval identifier. They must not be presented as standalone evidence of human
+approval.
+
 ## Privacy considerations
 
 - Approval token carries minimal metadata and should avoid sensitive payload copies.

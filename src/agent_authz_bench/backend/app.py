@@ -163,7 +163,7 @@ def create_backend_app() -> FastAPI:
         state.append_audit("income_verification", loan_id, caller)
         return {"status": "updated"}
 
-    @app.delete("/loans/{loan_id}", status_code=status.HTTP_204_NO_CONTENT)
+    @app.delete("/loans/{loan_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
     def delete_loan(loan_id: str, authorization: str | None = Header(default=None)) -> None:
         caller = caller_from_auth(authorization)
         if loan_id not in state.loans:

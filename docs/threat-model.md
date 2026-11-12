@@ -51,6 +51,17 @@ user -> orchestrator -> gateway -> backend
 | header-spoofing | spoofed `X-User-*` headers attempt privilege escalation |
 | positive-control | legitimate low-risk reads remain functional |
 
+## Provisional OWASP mapping
+
+| Harness threat | Provisional mapping | Rationale |
+|---|---|---|
+| privilege-gap and step-scope | OWASP ASI03 | Broad user or agent authority can exceed the authority appropriate to an individual agent step. |
+| approval argument swap and replay | OWASP ASI09 | Approval evidence can be substituted for different parameters or reused after it should no longer authorize an action. |
+
+These are concise working mappings, not claims of OWASP conformance. Validate the identifiers and
+taxonomy wording against the current official OWASP material before relying on them externally;
+this repository does not establish that mapping.
+
 ## Risk tiers
 
 - **Tier 1:** no state change, no hidden side effects, no external side effects.
@@ -62,9 +73,13 @@ user -> orchestrator -> gateway -> backend
 - Tokens and keys are test fixtures.
 - Gateway is the sole backend path in secure deployments.
 - Approval service and IdP are trusted unless explicitly modeled otherwise.
+- A shared staff login cannot establish whether a human or an agent initiated a specific action.
+  That attribution requires intent and identity evidence outside normal scope-based gateway
+  authorization.
 
 ## Out of scope
 
 - Prompt injection detection
 - Production deployment hardening
 - Regulatory/compliance assurances
+- Attribution of actions performed through shared staff credentials

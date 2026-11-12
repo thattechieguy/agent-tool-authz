@@ -10,6 +10,8 @@ assignees: ""
 
 ## Notes
 
+## Non-representable scenarios and gateway/control limitations
+
 ## Results JSON
 
 ```json

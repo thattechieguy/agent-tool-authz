@@ -156,6 +156,60 @@ def test_approval_mismatch_and_replay() -> None:
     assert replay.value.error == "approval_replayed"
 
 
+def test_approval_cross_run_reuse_and_expiry_are_rejected() -> None:
+    pipeline = GatewayPipeline(_config())
+    body = b'{"verified": true, "monthly_income": 5000}'
+    other_run = "run-other"
+    cross_run_token, _ = issue_approval(
+        other_run,
+        request_hash(
+            "POST",
+            "/loans/L-1001/income-verification",
+            {},
+            body.decode("utf-8"),
+            other_run,
+        ),
+    )
+    with pytest.raises(DecisionError) as cross_run:
+        pipeline.authorize(
+            method="POST",
+            path="/loans/L-1001/income-verification",
+            query={},
+            body=body,
+            headers={
+                **_headers(user="alice", scopes=["Loans.Income"]),
+                "x-run-context": issue_run_context("run-abc", tainted=True),
+                "x-approval-token": cross_run_token,
+            },
+        )
+    assert cross_run.value.error == "approval_invalid"
+
+    expired_token, _ = issue_approval(
+        "run-abc",
+        request_hash(
+            "POST",
+            "/loans/L-1001/income-verification",
+            {},
+            body.decode("utf-8"),
+            "run-abc",
+        ),
+        expired=True,
+    )
+    with pytest.raises(DecisionError) as expired:
+        pipeline.authorize(
+            method="POST",
+            path="/loans/L-1001/income-verification",
+            query={},
+            body=body,
+            headers={
+                **_headers(user="alice", scopes=["Loans.Income"]),
+                "x-run-context": issue_run_context("run-abc", tainted=True),
+                "x-approval-token": expired_token,
+            },
+        )
+    assert expired.value.error == "approval_invalid"
+
+
 def test_weak_mode_allows_and_mints_service_token() -> None:
     pipeline = GatewayPipeline(_config(mode="weak"))
     result = pipeline.authorize(
