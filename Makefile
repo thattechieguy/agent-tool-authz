@@ -11,7 +11,7 @@ PIP := $(VENV_BIN)/pip
 PY := $(VENV_BIN)/python
 AAB := $(VENV_BIN)/aab
 
-.PHONY: setup env-init keys lint mypy test check apim-scaffold apim-drift up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
+.PHONY: setup env-init keys lint mypy test check apim-scaffold apim-drift up-weak up-reference wait-for-services down scenarios-weak scenarios-reference report demo demo-ci
 
 setup:
 	$(PYTHON) -m venv $(VENV)
@@ -46,11 +46,22 @@ up-weak:
 	@mkdir -p .run logs reports
 	@$(PY) -m uvicorn agent_authz_bench.backend.app:app --host 127.0.0.1 --port 9000 > logs/backend-weak.log 2>&1 & echo $$! > .run/backend.pid
 	@GATEWAY_MODE=weak BACKEND_URL=http://127.0.0.1:9000 $(PY) -m uvicorn agent_authz_bench.gateway.app:app --host 127.0.0.1 --port 8080 > logs/gateway-weak.log 2>&1 & echo $$! > .run/gateway.pid
+	@$(MAKE) wait-for-services
 
 up-reference:
 	@mkdir -p .run logs reports
 	@BACKEND_AUTH_MODE=service_token $(PY) -m uvicorn agent_authz_bench.backend.app:app --host 127.0.0.1 --port 9000 > logs/backend-reference.log 2>&1 & echo $$! > .run/backend.pid
 	@GATEWAY_MODE=reference BACKEND_URL=http://127.0.0.1:9000 $(PY) -m uvicorn agent_authz_bench.gateway.app:app --host 127.0.0.1 --port 8080 > logs/gateway-reference.log 2>&1 & echo $$! > .run/gateway.pid
+	@$(MAKE) wait-for-services
+
+wait-for-services:
+	@for url in http://127.0.0.1:9000/healthz http://127.0.0.1:8080/docs; do \
+		for i in $$(seq 1 50); do \
+			if curl --fail --silent "$$url" > /dev/null; then break; fi; \
+			if [ "$$i" -eq 50 ]; then echo "Timed out waiting for $$url"; exit 1; fi; \
+			sleep 0.1; \
+		done; \
+	done
 
 down:
 	@if [ -f .run/gateway.pid ]; then kill $$(cat .run/gateway.pid) || true; rm .run/gateway.pid; fi
