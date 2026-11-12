@@ -29,7 +29,6 @@ jobs:
 
   mypy:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +37,7 @@ jobs:
       - run: |
           python -m venv .venv
           .venv/bin/python -m pip install -e ".[dev]"
-      - run: mypy src
+      - run: make mypy
 
   apim-policy-gates:
     runs-on: ubuntu-latest

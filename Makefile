@@ -11,7 +11,7 @@ PIP := $(VENV_BIN)/pip
 PY := $(VENV_BIN)/python
 AAB := $(VENV_BIN)/aab
 
-.PHONY: setup env-init keys lint test check apim-scaffold apim-drift up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
+.PHONY: setup env-init keys lint mypy test check apim-scaffold apim-drift up-weak up-reference down scenarios-weak scenarios-reference report demo demo-ci
 
 setup:
 	$(PYTHON) -m venv $(VENV)
@@ -22,11 +22,14 @@ env-init:
 	$(AAB) env init --out .env
 
 keys:
-	@echo "keys generation removed; use your own identity and token setup via .env"
+	$(PY) -c "from pathlib import Path; from agent_authz_bench.tokens.keys import generate_test_keys; generate_test_keys(Path('.keys'))"
 
 lint:
 	$(PY) -m ruff check .
 	$(PY) -m ruff format --check .
+
+mypy:
+	$(PY) -m mypy src
 
 test:
 	$(PY) -m pytest tests/unit
