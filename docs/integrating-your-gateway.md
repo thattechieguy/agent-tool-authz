@@ -39,12 +39,11 @@ Schema: `schema/caller-profiles.schema.json`.
 
 ## Token provider replacement
 
-`EnvTokenProvider` uses one static or Azure-minted token for every scenario identity. It is
-appropriate only when your test token source can preserve each scenario's identity and
-entitlements. Do not use it to assess entitlement separation if every scenario receives the same
-principal.
+`EnvTokenProvider` ignores each scenario's declared identity. Its static-token, Azure CLI,
+client-credential, and managed-identity modes always use one principal. Do not use it for
+multi-user, multi-role, or entitlement-separation testing.
 
-For identity-aware testing, implement a provider factory and select it with
+For multi-user or multi-role testing, implement a custom identity-aware provider factory and select it with
 `--token-provider package.module:create_provider` or `AAB_TOKEN_PROVIDER`. The factory receives
 `UserInputConfig` and must return an object implementing:
 
@@ -74,8 +73,8 @@ an isolated test environment; never expose them in a production deployment:
 
 | Endpoint | Request | Required behavior |
 |---|---|---|
-| `POST /_admin/reset` | Header: `X-Admin-Key: <test-only key>` | Restore deterministic synthetic test data. Return a 2xx response only for an authorized test controller. |
-| `GET /_debug/state` | Header: `X-Admin-Key: <test-only key>` | Return the state required by each scenario's `assert_state` paths. Return 401/403 without the test-only key. |
+| `POST /_admin/reset` | Header: `X-Admin-Key: <test-only key>` | Restore deterministic synthetic test data. Return 2xx only for an authorized test controller. The runner stops immediately on any other response. |
+| `GET /_debug/state` | Header: `X-Admin-Key: <test-only key>` | Return the state required by each scenario's `assert_state` paths. Return 401/403 without the test-only key. The runner stops immediately on any non-2xx response. |
 
 Keep both endpoints off public API discovery, protect them with a separate test-only secret or
 network boundary, and omit them entirely from production.

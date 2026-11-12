@@ -79,7 +79,10 @@ def execute_suite(
                 continue
             jsonschema.validate(scenario, scenario_schema)
             run_id = f"run-{scenario['id']}-{secrets.token_hex(4)}"
-            client.post(f"{backend}/_admin/reset", headers={"X-Admin-Key": admin_key})
+            reset_response = client.post(
+                f"{backend}/_admin/reset", headers={"X-Admin-Key": admin_key}
+            )
+            reset_response.raise_for_status()
 
             step_results: list[StepResult] = []
             state_assertions: list[StateAssertionResult] = []
@@ -163,9 +166,11 @@ def execute_suite(
                 )
 
             if scenario.get("assert_state"):
-                state = client.get(
+                state_response = client.get(
                     f"{backend}/_debug/state", headers={"X-Admin-Key": admin_key}
-                ).json()
+                )
+                state_response.raise_for_status()
+                state = state_response.json()
                 for assertion in scenario["assert_state"]:
                     actual = _dig_value(state, assertion["path"])
                     ok = _assert_state(assertion["op"], actual, assertion.get("value"))

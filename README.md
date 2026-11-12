@@ -112,8 +112,10 @@ You need:
 - A test-only backend admin/reset endpoint compatible with the [HTTP contract](docs/integrating-your-gateway.md).
 - Test identities and tokens containing the audience, scopes, roles, and caller-context claims
   expected by your gateway.
-- A token source: a static `AAB_ACCESS_TOKEN`, Azure CLI (`az login` plus
-  `AAB_TOKEN_SCOPE` or `AAB_TOKEN_RESOURCE`), client credentials, or managed identity.
+- A token source. Static `AAB_ACCESS_TOKEN`, Azure CLI (`az login` plus
+  `AAB_TOKEN_SCOPE` or `AAB_TOKEN_RESOURCE`), client credentials, and managed identity are
+  single-principal modes. Use a [custom token provider](docs/integrating-your-gateway.md#token-provider-replacement)
+  for multi-user, multi-role, or entitlement-separation testing.
 - Run-context and approval tokens if your gateway enforces those controls.
 
 Install the CLI and create a local configuration file:
