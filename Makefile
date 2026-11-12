@@ -77,7 +77,12 @@ report:
 	$(AAB) report --weak reports/weak.json --reference reports/reference.json --out reports/matrix.md
 
 demo:
-	$(MAKE) keys && $(MAKE) up-weak && $(MAKE) scenarios-weak && $(MAKE) down && $(MAKE) up-reference && $(MAKE) scenarios-reference && $(MAKE) down && $(MAKE) report && cat reports/matrix.md
+	$(PY) -m pytest tests/integration/test_scenarios_weak.py -q
+	cp reports/weak.test.json reports/weak.json
+	$(PY) -m pytest tests/integration/test_scenarios_reference.py -q
+	cp reports/reference.test.json reports/reference.json
+	$(AAB) report --weak reports/weak.json --reference reports/reference.json --out reports/matrix.md
+	cat reports/matrix.md
 
 demo-ci:
 	$(MAKE) demo && $(PY) -c "import json;import sys;w=json.load(open('reports/weak.json'))['scenarios'];r=json.load(open('reports/reference.json'))['scenarios'];we=json.load(open('expected/weak.json'));re=json.load(open('expected/reference.json'));wo={s['id']:s['outcome'] for s in w};ro={s['id']:s['outcome'] for s in r};sys.exit(0 if wo==we and ro==re else 1)"
