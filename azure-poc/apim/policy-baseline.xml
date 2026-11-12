@@ -1,0 +1,34 @@
+<!--
+  Baseline ("before") policy: the typical minimum. Validates the token and forwards.
+  No scope/role checks, no rate limit, no taint or approval handling.
+  Same named values as the reference policy are NOT needed except:
+    tenant-id, gateway-client-id, backend-client-id
+-->
+<policies>
+    <inbound>
+        <base />
+        <validate-jwt header-name="Authorization" failed-validation-httpcode="401"
+                      failed-validation-error-message='{"error":"invalid_token"}'>
+            <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid-configuration" />
+            <audiences>
+                <audience>{{gateway-client-id}}</audience>
+                <audience>api://{{gateway-client-id}}</audience>
+            </audiences>
+            <issuers>
+                <issuer>https://login.microsoftonline.com/{{tenant-id}}/v2.0</issuer>
+            </issuers>
+        </validate-jwt>
+        <authentication-managed-identity resource="api://{{backend-client-id}}" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- bring-up aid: shows which operation id APIM matched (must equal the backend operationId) -->
+        <set-header name="X-Operation-Id" exists-action="override"><value>@(context.Operation.Id)</value></set-header>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

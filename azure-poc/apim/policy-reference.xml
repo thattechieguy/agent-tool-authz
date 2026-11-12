@@ -1,0 +1,193 @@
+<!--
+  Reference policy: enforces user entitlement AND step scope, deny-by-default, rate limits,
+  taint (fail closed) and approval bound to the exact request.
+
+  Applies to: API "Loans" -> All operations -> Policy code editor.
+  Operation IDs below MUST equal the operationId values in the backend OpenAPI document.
+
+  Named values required (APIM -> Named values):
+    tenant-id, gateway-client-id, agent-client-id, backend-client-id,
+    approval-service-url (no trailing slash), approval-verify-key (secret),
+    orchestrator-signing-key (secret, base64)
+
+  NOTE: policy expressions get only limited validation when you save. Errors often appear
+  at runtime as HTTP 500. Test in the order described in the README.
+-->
+<policies>
+    <inbound>
+        <base />
+
+        <!-- 1. Entra access token: signature, issuer, audience, expiry -->
+        <validate-jwt header-name="Authorization" failed-validation-httpcode="401"
+                      failed-validation-error-message='{"error":"invalid_token"}'
+                      output-token-variable-name="jwt">
+            <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid-configuration" />
+            <audiences>
+                <audience>{{gateway-client-id}}</audience>
+                <audience>api://{{gateway-client-id}}</audience>
+            </audiences>
+            <issuers>
+                <issuer>https://login.microsoftonline.com/{{tenant-id}}/v2.0</issuer>
+            </issuers>
+        </validate-jwt>
+
+        <!-- 2. Central operation map: scope | allowed roles (any of) | approval mode | calls per minute per run.
+                An operation that is not listed here is denied (deny by default). -->
+        <set-variable name="rule" value='@{
+            switch (context.Operation.Id) {
+                case "get_loan_details":           return "Loans.Read|ReadOnly,Servicer,SeniorServicer|none|60";
+                case "get_payment_history":        return "Loans.Read|ReadOnly,Servicer,SeniorServicer|none|60";
+                case "get_credit_report":          return "Loans.Credit|Servicer,SeniorServicer|none|3";
+                case "update_income_verification": return "Loans.Income|Servicer,SeniorServicer|if_tainted|10";
+                case "create_payment_deferral":    return "Loans.Deferral|Servicer,SeniorServicer|required|5";
+                case "waive_late_fee":             return "Loans.Waiver|SeniorServicer|required|5";
+                default:                           return "";
+            }
+        }' />
+
+        <!-- 3. Client, run id, operation, step scope (scp) AND user entitlement (roles) -->
+        <set-variable name="deny" value='@{
+            var jwt = (Jwt)context.Variables["jwt"];
+            var azp = string.Join("", jwt.Claims.GetValueOrDefault("azp", new string[0]));
+            if (azp != "{{agent-client-id}}") { return "unauthorized_client"; }
+            var runId = context.Request.Headers.GetValueOrDefault("X-Agent-Run-Id", "");
+            if (runId.Length == 0 || runId.Length > 128) { return "missing_run_id"; }
+            var rule = (string)context.Variables["rule"];
+            if (rule == "") { return "unknown_operation"; }
+            var parts = rule.Split(&apos;|&apos;);
+            var scopes = string.Join(" ", jwt.Claims.GetValueOrDefault("scp", new string[0])).Split(&apos; &apos;);
+            if (!scopes.Contains(parts[0])) { return "insufficient_scope"; }
+            var roles = jwt.Claims.GetValueOrDefault("roles", new string[0]);
+            if (!parts[1].Split(&apos;,&apos;).Intersect(roles).Any()) { return "insufficient_entitlement"; }
+            return "";
+        }' />
+        <choose>
+            <when condition='@((string)context.Variables["deny"] != "")'>
+                <return-response>
+                    <set-status code='@(((string)context.Variables["deny"]) == "unknown_operation" ? 404 : (((string)context.Variables["deny"]) == "missing_run_id" ? 400 : 403))' reason="Denied" />
+                    <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                    <set-header name="X-Gateway-Decision" exists-action="override"><value>@("deny:" + (string)context.Variables["deny"])</value></set-header>
+                    <set-body>@("{\"error\":\"" + (string)context.Variables["deny"] + "\"}")</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- 4. Rate limit per run and operation (counts only authorised calls) -->
+        <rate-limit-by-key calls='@(int.Parse(((string)context.Variables["rule"]).Split(&apos;|&apos;)[3]))'
+                           renewal-period="60"
+                           counter-key='@(context.Request.Headers.GetValueOrDefault("X-Agent-Run-Id", "none") + ":" + context.Operation.Id)' />
+
+        <!-- 5. Taint: signed run-context from the orchestrator. Missing = treated as tainted (fail closed). -->
+        <choose>
+            <when condition='@(context.Request.Headers.ContainsKey("X-Run-Context"))'>
+                <validate-jwt header-name="X-Run-Context" failed-validation-httpcode="401"
+                              failed-validation-error-message='{"error":"invalid_run_context"}'
+                              output-token-variable-name="ctx">
+                    <issuer-signing-keys>
+                        <key>{{orchestrator-signing-key}}</key>
+                    </issuer-signing-keys>
+                    <audiences><audience>loans-gateway</audience></audiences>
+                    <issuers><issuer>orchestrator</issuer></issuers>
+                </validate-jwt>
+                <set-variable name="tainted" value='@{
+                    var c = (Jwt)context.Variables["ctx"];
+                    var claimRun = string.Join("", c.Claims.GetValueOrDefault("run_id", new string[0]));
+                    var hdrRun = context.Request.Headers.GetValueOrDefault("X-Agent-Run-Id", "");
+                    if (claimRun != hdrRun) { return "mismatch"; }
+                    var flag = string.Join("", c.Claims.GetValueOrDefault("untrusted_content", new string[0])).ToLower();
+                    return flag == "true" ? "true" : "false";
+                }' />
+            </when>
+            <otherwise>
+                <set-variable name="tainted" value="true" />
+            </otherwise>
+        </choose>
+        <choose>
+            <when condition='@((string)context.Variables["tainted"] == "mismatch")'>
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                    <set-header name="X-Gateway-Decision" exists-action="override"><value>deny:invalid_run_context</value></set-header>
+                    <set-body>{"error":"invalid_run_context"}</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- 6. Approval: always for "required"; for "if_tainted" only when the run is tainted -->
+        <set-variable name="approvalNeeded" value='@{
+            var mode = ((string)context.Variables["rule"]).Split(&apos;|&apos;)[2];
+            var t = (string)context.Variables["tainted"] == "true";
+            return (mode == "required" || (mode == "if_tainted" &amp;&amp; t)) ? "true" : "false";
+        }' />
+        <choose>
+            <when condition='@((string)context.Variables["approvalNeeded"] == "true")'>
+                <choose>
+                    <when condition='@(!context.Request.Headers.ContainsKey("X-Approval-Id"))'>
+                        <return-response>
+                            <set-status code="403" reason="Forbidden" />
+                            <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                            <set-header name="X-Gateway-Decision" exists-action="override"><value>deny:approval_required</value></set-header>
+                            <set-body>{"error":"approval_required"}</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+                <send-request mode="new" response-variable-name="approvalResp" timeout="10" ignore-error="true">
+                    <set-url>{{approval-service-url}}/verify</set-url>
+                    <set-method>POST</set-method>
+                    <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                    <set-header name="X-Verify-Key" exists-action="override"><value>{{approval-verify-key}}</value></set-header>
+                    <set-body>@{
+                        var raw = context.Request.Body == null ? "" : context.Request.Body.As&lt;string&gt;(preserveContent: true);
+                        return new JObject(
+                            new JProperty("approval_id", context.Request.Headers.GetValueOrDefault("X-Approval-Id", "")),
+                            new JProperty("method", context.Request.Method),
+                            new JProperty("path", context.Request.OriginalUrl.Path),
+                            new JProperty("query", context.Request.OriginalUrl.QueryString),
+                            new JProperty("body", raw),
+                            new JProperty("run_id", context.Request.Headers.GetValueOrDefault("X-Agent-Run-Id", ""))
+                        ).ToString();
+                    }</set-body>
+                </send-request>
+                <choose>
+                    <when condition='@{ var r = (IResponse)context.Variables["approvalResp"]; return r == null || r.StatusCode != 200; }'>
+                        <return-response>
+                            <set-status code="403" reason="Forbidden" />
+                            <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+                            <set-header name="X-Gateway-Decision" exists-action="override"><value>deny:approval</value></set-header>
+                            <set-body>@{
+                                var r = (IResponse)context.Variables["approvalResp"];
+                                if (r == null) { return "{\"error\":\"approval_service_unavailable\"}"; }
+                                return r.Body.As&lt;string&gt;();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+
+        <!-- 7. Audit trace (visible in Application Insights when logging verbosity is Information) -->
+        <trace source="agent-authz" severity="information">
+            <message>@("allow tool=" + context.Operation.Id + " run=" + context.Request.Headers.GetValueOrDefault("X-Agent-Run-Id", "") + " tainted=" + (string)context.Variables["tainted"])</message>
+            <metadata name="user_oid" value='@(string.Join("", ((Jwt)context.Variables["jwt"]).Claims.GetValueOrDefault("oid", new string[0])))' />
+            <metadata name="node" value='@(context.Request.Headers.GetValueOrDefault("X-Agent-Node-Id", "unknown"))' />
+        </trace>
+
+        <!-- 8. Forward with the gateway's own identity; strip client-supplied control headers -->
+        <authentication-managed-identity resource="api://{{backend-client-id}}" />
+        <set-header name="X-Caller-Type" exists-action="override"><value>agent</value></set-header>
+        <set-header name="X-Run-Context" exists-action="delete" />
+        <set-header name="X-Approval-Id" exists-action="delete" />
+        <set-header name="X-User-Role" exists-action="delete" />
+        <set-header name="X-Roles" exists-action="delete" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-header name="X-Gateway-Decision" exists-action="override"><value>allow</value></set-header>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

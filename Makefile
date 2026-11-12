@@ -15,7 +15,7 @@ AAB := $(VENV_BIN)/aab
 
 setup:
 	$(PYTHON) -m venv $(VENV)
-	$(PIP) install -e ".[dev]"
+	$(PIP) install -r requirements-dev.lock
 	$(MAKE) env-init
 
 env-init:

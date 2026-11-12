@@ -111,9 +111,9 @@ Install the CLI and create a local configuration file:
 ```bash
 python -m venv .venv
 # Windows PowerShell
-.\.venv\Scripts\pip install -e ".[dev]"
+.\.venv\Scripts\pip install -r requirements-dev.lock
 .\.venv\Scripts\aab env init
-# macOS/Linux: .venv/bin/pip install -e ".[dev]" && .venv/bin/aab env init
+# macOS/Linux: .venv/bin/pip install -r requirements-dev.lock && .venv/bin/aab env init
 ```
 
 Set the endpoint and token values in `.env`, using `.env.example` as the field reference, then
@@ -130,6 +130,13 @@ run:
 See [integrating your gateway](docs/integrating-your-gateway.md) for request headers, expected
 responses, and token-provider integration. Do not supply production credentials or point the
 runner at production APIs.
+
+## Azure APIM proof of concept
+
+`azure-poc/` is optional and separate from the local demo. It requires a dev/test Azure
+subscription, Microsoft Entra permissions to create app registrations and test users, an APIM
+instance, App Service resources, Python 3.11+, and Azure CLI/browser sign-in. It can incur Azure
+costs. Follow [the Azure POC guide](azure-poc/README.md) before provisioning anything.
 
 ## APIM skeleton workflow (bring your own app registrations)
 

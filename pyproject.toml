@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools==84.2.1", "wheel==0.48.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -43,6 +43,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["azure-poc"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W"]

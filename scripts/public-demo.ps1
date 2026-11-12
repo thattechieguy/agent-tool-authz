@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "[1/5] Setup environment"
 python -m venv .venv
-.\.venv\Scripts\pip install -e ".[dev]"
+.\.venv\Scripts\pip install -r requirements-dev.lock
 
 Write-Host "[2/5] Run baseline weak fixture suite"
 .\.venv\Scripts\python -m pytest tests\integration\test_scenarios_weak.py -q

@@ -4,7 +4,7 @@ set -euo pipefail
 echo "[1/5] Setup environment"
 python -m venv .venv
 . .venv/bin/activate
-pip install -e ".[dev]"
+pip install -r requirements-dev.lock
 
 echo "[2/5] Run baseline weak fixture suite"
 python -m pytest tests/integration/test_scenarios_weak.py -q

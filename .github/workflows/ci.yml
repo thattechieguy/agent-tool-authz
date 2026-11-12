@@ -17,7 +17,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: |
           python -m venv .venv
-          .venv/bin/python -m pip install -e ".[dev]"
+          .venv/bin/python -m pip install -r requirements-dev.lock
       - run: make keys
       - run: make lint
       - run: make test
@@ -36,7 +36,7 @@ jobs:
           python-version: "3.11"
       - run: |
           python -m venv .venv
-          .venv/bin/python -m pip install -e ".[dev]"
+          .venv/bin/python -m pip install -r requirements-dev.lock
       - run: make mypy
 
   apim-policy-gates:
@@ -48,6 +48,22 @@ jobs:
           python-version: "3.11"
       - run: |
           python -m venv .venv
-          .venv/bin/python -m pip install -e ".[dev]"
+          .venv/bin/python -m pip install -r requirements-dev.lock
       - run: make apim-scaffold
       - run: make apim-drift
+
+  azure-poc-offline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: azure-poc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.lock
+      - run: .venv/bin/python -m pytest tests/local -q
+      - run: .venv/bin/python -c "from xml.etree import ElementTree; ElementTree.parse('apim/policy-reference.xml')"
