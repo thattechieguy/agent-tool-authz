@@ -100,8 +100,8 @@ requests and resets/checks synthetic backend state between scenarios.
 
 1. Run the [local demo](#start-here-run-the-local-demo) to verify your installation.
 2. Copy `.env.example` to `.env` and set your test gateway and backend URLs.
-3. Configure a test token from your identity provider.
-4. Map the sample scenario routes and permissions to your API operations and entitlements.
+3. Configure identity-aware test tokens from your identity provider; see the [token-provider contract](docs/integrating-your-gateway.md#token-provider-replacement).
+4. Copy and customize the loan-specific scenarios for your API operations, entitlements, approvals, and state assertions.
 5. Implement the test-only backend reset endpoint in the [HTTP contract](docs/integrating-your-gateway.md).
 6. Run `aab run` against a non-production environment.
 7. Use the generated report to correct authorization behavior that differs from the expected result.

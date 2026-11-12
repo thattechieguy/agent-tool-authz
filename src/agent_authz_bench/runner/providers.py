@@ -2,7 +2,9 @@
 
 import json
 import subprocess
-from typing import Any, Protocol
+from collections.abc import Callable
+from importlib import import_module
+from typing import Any, Protocol, cast
 
 from agent_authz_bench.config.env import UserInputConfig, load_user_input_config
 
@@ -85,6 +87,26 @@ class EnvTokenProvider:
         raise NotImplementedError(
             "Set AAB_APPROVAL_TOKEN in .env for scenarios that require approval tokens."
         )
+
+
+def load_token_provider(spec: str | None, config: UserInputConfig) -> TokenProvider:
+    """Load a configured provider factory or the default environment provider."""
+    if not spec:
+        return EnvTokenProvider(config)
+    module_name, separator, factory_name = spec.partition(":")
+    if not separator or not module_name or not factory_name:
+        raise ValueError("Token provider must use the form 'package.module:factory_name'.")
+    try:
+        factory = getattr(import_module(module_name), factory_name)
+    except (ImportError, AttributeError) as exc:
+        raise ValueError(f"Unable to load token provider '{spec}'.") from exc
+    if not callable(factory):
+        raise ValueError(f"Token provider factory '{spec}' is not callable.")
+    provider = cast(Callable[[UserInputConfig], TokenProvider], factory)(config)
+    required_methods = ("access_token", "run_context", "approval")
+    if not all(callable(getattr(provider, method, None)) for method in required_methods):
+        raise ValueError(f"Token provider factory '{spec}' returned an invalid provider.")
+    return provider
 
 
 class EntraOboTokenProvider:

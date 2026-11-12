@@ -1,6 +1,7 @@
 """CLI entrypoint."""
 
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from agent_authz_bench.accelerator.apim import (
 from agent_authz_bench.catalog.lint import lint_catalog_cli
 from agent_authz_bench.config.env import load_user_input_config
 from agent_authz_bench.runner.executor import execute_suite
-from agent_authz_bench.runner.providers import EnvTokenProvider
+from agent_authz_bench.runner.providers import load_token_provider
 from agent_authz_bench.runner.report import generate_report
 
 app = typer.Typer(help="agent-authz-bench CLI")
@@ -111,10 +112,16 @@ def run_scenarios(
     label: str = "reference",
     out: Path = Path("reports/reference.json"),
     only: str = "",
+    token_provider: str = "",
 ) -> None:
     """Run authorization scenarios against a target gateway."""
     config = load_user_input_config()
     selected = {item.strip() for item in only.split(",") if item.strip()} or None
+    provider_spec = token_provider or os.environ.get("AAB_TOKEN_PROVIDER")
+    try:
+        provider = load_token_provider(provider_spec, config)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="--token-provider") from exc
     execute_suite(
         target=target or config.target_gateway_url,
         backend=backend or config.backend_url,
@@ -123,7 +130,7 @@ def run_scenarios(
         label=label,
         out=out,
         only=selected,
-        token_provider=EnvTokenProvider(config),
+        token_provider=provider,
     )
 
 

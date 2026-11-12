@@ -1,9 +1,11 @@
 import json
+import sys
+from types import ModuleType
 
 import pytest
 
 from agent_authz_bench.config.env import UserInputConfig
-from agent_authz_bench.runner.providers import EnvTokenProvider
+from agent_authz_bench.runner.providers import EnvTokenProvider, load_token_provider
 
 
 def _config(**overrides: object) -> UserInputConfig:
@@ -53,3 +55,28 @@ def test_managed_identity_flow_uses_identity_flag(monkeypatch: pytest.MonkeyPatc
     token = provider.access_token({})
     assert token == "tok"
     assert "--identity" in seen[0]
+
+
+def test_custom_token_provider_factory_receives_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = ModuleType("test_token_provider")
+
+    class Provider:
+        def access_token(self, identity: dict[str, object]) -> str:
+            return f"token-for-{identity['user']}"
+
+        def run_context(self, run_id: str, ctx: object) -> None:
+            return None
+
+        def approval(self, run_id: str, req_hash: str) -> tuple[str, str]:
+            return "approval", "approval-id"
+
+    def create_provider(config: UserInputConfig) -> Provider:
+        assert config.tenant_id == "tenant"
+        return Provider()
+
+    module.create_provider = create_provider  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "test_token_provider", module)
+
+    provider = load_token_provider("test_token_provider:create_provider", _config())
+
+    assert provider.access_token({"user": "bob"}) == "token-for-bob"

@@ -39,18 +39,83 @@ Schema: `schema/caller-profiles.schema.json`.
 
 ## Token provider replacement
 
-Implement `TokenProvider` in `runner/providers.py`:
+`EnvTokenProvider` uses one static or Azure-minted token for every scenario identity. It is
+appropriate only when your test token source can preserve each scenario's identity and
+entitlements. Do not use it to assess entitlement separation if every scenario receives the same
+principal.
+
+For identity-aware testing, implement a provider factory and select it with
+`--token-provider package.module:create_provider` or `AAB_TOKEN_PROVIDER`. The factory receives
+`UserInputConfig` and must return an object implementing:
 
 - `access_token(identity) -> str`
 - `run_context(run_id, ctx) -> str | None`
 - `approval(run_id, req_hash) -> tuple[token, jti]`
+
+For example:
+
+```python
+from agent_authz_bench.config.env import UserInputConfig
+
+
+def create_provider(config: UserInputConfig):
+    return MyIdentityAwareProvider(config)
+```
+
+`access_token` receives the scenario's `identity` mapping, including `user`, `scopes`, and the
+optional `client`, `caller_type`, and node context. Use it to mint or obtain a distinct token for
+each identity; for example, return Bob's read-only token for `{user: bob, scopes: [Orders.Write]}`
+and an entitled operator's token for the corresponding allowed case.
+
+## Backend test-control contract
+
+The runner resets and inspects backend state between scenarios. Implement these endpoints only in
+an isolated test environment; never expose them in a production deployment:
+
+| Endpoint | Request | Required behavior |
+|---|---|---|
+| `POST /_admin/reset` | Header: `X-Admin-Key: <test-only key>` | Restore deterministic synthetic test data. Return a 2xx response only for an authorized test controller. |
+| `GET /_debug/state` | Header: `X-Admin-Key: <test-only key>` | Return the state required by each scenario's `assert_state` paths. Return 401/403 without the test-only key. |
+
+Keep both endpoints off public API discovery, protect them with a separate test-only secret or
+network boundary, and omit them entirely from production.
+
+## Customize scenarios for your API
+
+Copy the `scenarios/` directory, then update each YAML file before running it:
+
+1. Replace loan routes, request bodies, and query values with operations from your test API.
+2. Replace sample identities (`alice`, `bob`, `dave`), scopes, roles, caller types, and nodes with
+   your test entitlement model.
+3. Set expected status/error results to your gateway's documented contract.
+4. Update approvals and `assert_state` paths to reflect your sensitive operation and backend state.
+
+For example, adapt the loan fee-waiver privilege-gap scenario to a customer-credit API:
+
+```yaml
+id: S01
+title: Privilege gap
+category: privilege-gap
+description: A read-only representative cannot issue account credit.
+steps:
+  - id: read-only-credit
+    identity: { user: rep-readonly, scopes: [Credits.Issue] }
+    request:
+      method: POST
+      path: /accounts/A-100/credits
+      body: { amount: 25 }
+    approval: { bound_to: this }
+    expect: { status: 403, error: insufficient_entitlement }
+assert_state:
+  - { path: accounts.A-100.credit_balance, op: eq, value: 0 }
+```
 
 ## Running against another gateway
 
 ```bash
 aab env init
 # edit .env values
-aab run --admin-key <key> --scenarios scenarios --label your-gateway --out reports/your-gateway.json
+aab run --token-provider package.module:create_provider --admin-key <key> --scenarios my-scenarios --label your-gateway --out reports/your-gateway.json
 ```
 
 For auth, set either `AAB_ACCESS_TOKEN` directly or configure `AAB_TOKEN_RESOURCE` / `AAB_TOKEN_SCOPE` so the runner mints a token via `az account get-access-token`.
