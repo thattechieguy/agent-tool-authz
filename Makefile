@@ -55,9 +55,9 @@ up-reference:
 	@$(MAKE) wait-for-services
 
 wait-for-services:
-	@for url in http://127.0.0.1:9000/healthz http://127.0.0.1:8080/docs; do \
+	@for url in http://127.0.0.1:9000/_debug/state http://127.0.0.1:8080/docs; do \
 		for i in $$(seq 1 50); do \
-			if curl --fail --silent "$$url" > /dev/null; then break; fi; \
+			if curl --silent "$$url" > /dev/null; then break; fi; \
 			if [ "$$i" -eq 50 ]; then echo "Timed out waiting for $$url"; exit 1; fi; \
 			sleep 0.1; \
 		done; \
